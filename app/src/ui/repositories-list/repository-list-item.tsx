@@ -79,10 +79,7 @@ export class RepositoryListItem extends React.Component<
           />
           {this.props.branchName && (
             <span className="branch-name">
-              <Octicon
-                className="branch-icon"
-                symbol={octicons.gitBranch}
-              />
+              <Octicon className="branch-icon" symbol={octicons.gitBranch} />
               {this.props.branchName}
             </span>
           )}
