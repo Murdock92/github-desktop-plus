@@ -24,6 +24,8 @@ interface IAppearanceProps {
   readonly onShowRecentRepositoriesChanged: (show: boolean) => void
   readonly showWorktrees: boolean
   readonly onShowWorktreesChanged: (show: boolean) => void
+  readonly showBranchNameInRepoList: boolean
+  readonly onShowBranchNameInRepoListChanged: (value: boolean) => void
 }
 
 interface IAppearanceState {
@@ -213,6 +215,12 @@ export class Appearance extends React.Component<
     )
   }
 
+  private onShowBranchNameInRepoListChanged = (
+    event: React.FormEvent<HTMLInputElement>
+  ) => {
+    this.props.onShowBranchNameInRepoListChanged(event.currentTarget.checked)
+  }
+
   private renderRepositoryList() {
     return (
       <div className="advanced-section">
@@ -226,6 +234,15 @@ export class Appearance extends React.Component<
               : CheckboxValue.Off
           }
           onChange={this.onShowRecentRepositoriesChanged}
+        />
+        <Checkbox
+          label="Show current branch name next to repository name"
+          value={
+            this.props.showBranchNameInRepoList
+              ? CheckboxValue.On
+              : CheckboxValue.Off
+          }
+          onChange={this.onShowBranchNameInRepoListChanged}
         />
       </div>
     )

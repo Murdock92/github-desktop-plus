@@ -1644,6 +1644,7 @@ export class App extends React.Component<IAppProps, IAppState> {
             onEditGlobalGitConfig={this.editGlobalGitConfig}
             underlineLinks={this.state.underlineLinks}
             showDiffCheckMarks={this.state.showDiffCheckMarks}
+            showBranchNameInRepoList={this.state.showBranchNameInRepoList}
           />
         )
       case PopupType.RepositorySettings: {
@@ -3027,6 +3028,7 @@ export class App extends React.Component<IAppProps, IAppState> {
         externalEditorLabel={this.externalEditorLabel}
         shellLabel={useCustomShell ? undefined : selectedShell}
         dispatcher={this.props.dispatcher}
+        showBranchNameInRepoList={this.state.showBranchNameInRepoList}
       />
     )
   }

@@ -75,6 +75,9 @@ interface IRepositoriesListProps {
   readonly filterText: string
 
   readonly dispatcher: Dispatcher
+
+  /** Whether to show the branch name next to each repository */
+  readonly showBranchNameInRepoList: boolean
 }
 
 interface IRepositoriesListState {
@@ -165,6 +168,9 @@ export class RepositoriesList extends React.Component<
         matches={matches}
         aheadBehind={item.aheadBehind}
         changedFilesCount={item.changedFilesCount}
+        branchName={
+          this.props.showBranchNameInRepoList ? item.branchName : undefined
+        }
       />
     )
   }
@@ -193,6 +199,9 @@ export class RepositoriesList extends React.Component<
     item: IRepositoryListItem
   ): JSX.Element | string | null => {
     const { repository, aheadBehind, changedFilesCount } = item
+    const branchName = this.props.showBranchNameInRepoList
+      ? item.branchName
+      : undefined
     const gitHubRepo =
       repository instanceof Repository ? repository.gitHubRepository : null
     const alias = repository instanceof Repository ? repository.alias : null
@@ -217,6 +226,12 @@ export class RepositoriesList extends React.Component<
           <div className="label">Path: </div>
           {repository.path}
         </div>
+        {branchName && (
+          <div>
+            <div className="label">Branch: </div>
+            {branchName}
+          </div>
+        )}
         {aheadBehindTooltip && (
           <div>
             <div className="label">

@@ -93,6 +93,7 @@ interface IPreferencesProps {
   readonly showRecentRepositories: boolean
   readonly showWorktrees: boolean
   readonly repositoryIndicatorsEnabled: boolean
+  readonly showBranchNameInRepoList: boolean
   readonly hideWindowOnQuit: boolean
   readonly onEditGlobalGitConfig: () => void
   readonly underlineLinks: boolean
@@ -144,6 +145,7 @@ interface IPreferencesState {
    */
   readonly existingLockFilePath?: string
   readonly repositoryIndicatorsEnabled: boolean
+  readonly showBranchNameInRepoList: boolean
   readonly hideWindowOnQuit: boolean
 
   readonly initiallySelectedTheme: ApplicationTheme
@@ -219,6 +221,7 @@ export class Preferences extends React.Component<
       showRecentRepositories: this.props.showRecentRepositories,
       showWorktrees: this.props.showWorktrees,
       repositoryIndicatorsEnabled: this.props.repositoryIndicatorsEnabled,
+      showBranchNameInRepoList: this.props.showBranchNameInRepoList,
       hideWindowOnQuit: this.props.hideWindowOnQuit,
       initiallySelectedTheme: this.props.selectedTheme,
       initiallySelectedTabSize: this.props.selectedTabSize,
@@ -552,6 +555,10 @@ export class Preferences extends React.Component<
             }
             showWorktrees={this.state.showWorktrees}
             onShowWorktreesChanged={this.onShowWorktreesChanged}
+            showBranchNameInRepoList={this.state.showBranchNameInRepoList}
+            onShowBranchNameInRepoListChanged={
+              this.onShowBranchNameInRepoListChanged
+            }
           />
         )
         break
@@ -797,6 +804,12 @@ export class Preferences extends React.Component<
     this.setState({ showDiffCheckMarks })
   }
 
+  private onShowBranchNameInRepoListChanged = (
+    showBranchNameInRepoList: boolean
+  ) => {
+    this.setState({ showBranchNameInRepoList })
+  }
+
   private onSelectedTabSizeChanged = (tabSize: number) => {
     this.props.dispatcher.setSelectedTabSize(tabSize)
   }
@@ -1001,6 +1014,8 @@ export class Preferences extends React.Component<
     dispatcher.setUnderlineLinksSetting(this.state.underlineLinks)
 
     dispatcher.setDiffCheckMarksSetting(this.state.showDiffCheckMarks)
+
+    dispatcher.setShowBranchNameInRepoList(this.state.showBranchNameInRepoList)
 
     this.props.onDismissed()
   }

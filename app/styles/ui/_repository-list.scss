@@ -48,6 +48,8 @@
     .name {
       // Long repository names truncate and ellipse
       @include ellipsis;
+      flex-shrink: 1;
+      min-width: 0;
 
       .prefix {
         color: var(--text-secondary-color);
@@ -64,6 +66,26 @@
 
     .alias {
       font-style: italic;
+    }
+
+    .branch-name {
+      color: var(--list-item-badge-color);
+      background: var(--branch-pill-background-color);
+      font-size: var(--font-size-sm);
+      margin-left: var(--spacing-half);
+      padding: 0 var(--spacing-half);
+      border-radius: var(--border-radius);
+      @include ellipsis;
+      flex-shrink: 1;
+      min-width: 0;
+      line-height: 1.6;
+
+      .branch-icon {
+        height: 12px;
+        width: 12px;
+        margin-right: 2px;
+        vertical-align: text-bottom;
+      }
     }
   }
 
@@ -133,11 +155,12 @@
 }
 
 .list-focus-container {
-  /** Ahead/behind badge colors when list item is selected but not focused */
+  /** Badge colors when list item is selected but not focused */
   .list-item.selected {
     .repository-list-item,
     .repository-list-item-tooltip {
-      .ahead-behind {
+      .ahead-behind,
+      .branch-name {
         background: var(--list-item-selected-badge-background-color);
         color: var(--list-item-selected-badge-color);
       }
@@ -145,11 +168,12 @@
   }
 
   &.focus-within {
-    /** Ahead/behind badge colors when list item is selected and focused */
+    /** Badge colors when list item is selected and focused */
     .list-item.selected {
       .repository-list-item,
       .repository-list-item-tooltip {
-        .ahead-behind {
+        .ahead-behind,
+        .branch-name {
           background: var(--list-item-selected-active-badge-background-color);
           color: var(--list-item-selected-active-badge-color);
         }
