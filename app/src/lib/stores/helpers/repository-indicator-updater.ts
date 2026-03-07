@@ -47,7 +47,8 @@ export class RepositoryIndicatorUpdater {
           ? Infinity
           : Date.now() - this.lastRefreshStartedAt
 
-      const timeout = Math.max(RefreshInterval - timeSinceLastRefresh, 0) + skew
+      const timeoutNoSkew = Math.max(RefreshInterval - timeSinceLastRefresh, 0)
+      const timeout = timeoutNoSkew > 0 ? timeoutNoSkew + skew : 0
       const lastRefreshText = isFinite(timeSinceLastRefresh)
         ? `${(timeSinceLastRefresh / 1000).toFixed(3)}s ago`
         : 'never'
