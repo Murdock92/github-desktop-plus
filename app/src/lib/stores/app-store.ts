@@ -9142,7 +9142,10 @@ export class AppStore extends TypedBaseStore<IAppState> {
   ) {
     if (showBranchNameInRepoList !== this.showBranchNameInRepoList) {
       this.showBranchNameInRepoList = showBranchNameInRepoList
-      localStorage.setItem(showBranchNameInRepoListKey, showBranchNameInRepoList)
+      localStorage.setItem(
+        showBranchNameInRepoListKey,
+        showBranchNameInRepoList
+      )
       this.emitUpdate()
     }
   }
