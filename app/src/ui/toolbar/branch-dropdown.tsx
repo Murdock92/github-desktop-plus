@@ -115,7 +115,7 @@ export class BranchDropdown extends React.Component<IBranchDropdownProps> {
         emoji={this.props.emoji}
         onDeleteBranch={this.onDeleteBranch}
         onRenameBranch={this.onRenameBranch}
-        onMakeDefaultBranch={this.onMakeDefaultBranch}
+        onSetAsDefaultBranch={this.onSetAsDefaultBranch}
         underlineLinks={this.props.underlineLinks}
       />
     )
@@ -327,10 +327,10 @@ export class BranchDropdown extends React.Component<IBranchDropdownProps> {
       onViewPullRequestOnGitHub: this.props.currentPullRequest
         ? this.onViewPullRequestOnGithub
         : undefined,
-      onMakeDefaultBranch:
+      onSetAsDefaultBranch:
         nameWithoutRemote === this.props.repository.defaultBranch
           ? undefined
-          : this.onMakeDefaultBranch,
+          : this.onSetAsDefaultBranch,
       onDeleteBranch: this.onDeleteBranch,
     })
 
@@ -390,7 +390,7 @@ export class BranchDropdown extends React.Component<IBranchDropdownProps> {
     this.props.dispatcher.showPullRequestByPR(pr)
   }
 
-  private onMakeDefaultBranch = (branchName: string) => {
+  private onSetAsDefaultBranch = (branchName: string) => {
     this.props.dispatcher.updateRepositoryDefaultBranch(
       this.props.repository,
       branchName

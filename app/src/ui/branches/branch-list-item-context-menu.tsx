@@ -12,7 +12,7 @@ interface IBranchContextMenuConfig {
   onRenameBranch?: (branchName: string) => void
   onViewBranchOnGitHub?: () => void
   onViewPullRequestOnGitHub?: () => void
-  onMakeDefaultBranch?: (branchName: string) => void
+  onSetAsDefaultBranch?: (branchName: string) => void
   onDeleteBranch?: (branchName: string) => void
 }
 
@@ -28,7 +28,7 @@ export function generateBranchContextMenuItems(
     onRenameBranch,
     onViewBranchOnGitHub,
     onViewPullRequestOnGitHub,
-    onMakeDefaultBranch,
+    onSetAsDefaultBranch,
     onDeleteBranch,
   } = config
   const items = new Array<IMenuItem>()
@@ -60,10 +60,10 @@ export function generateBranchContextMenuItems(
     })
   }
 
-  if (onMakeDefaultBranch !== undefined) {
+  if (onSetAsDefaultBranch !== undefined) {
     items.push({
-      label: __DARWIN__ ? 'Make The Default Branch' : 'Make the default branch',
-      action: () => onMakeDefaultBranch(nameWithoutRemote),
+      label: __DARWIN__ ? 'Set as Default Branch' : 'Set as default branch',
+      action: () => onSetAsDefaultBranch(nameWithoutRemote),
     })
   }
 

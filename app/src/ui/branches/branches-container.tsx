@@ -50,7 +50,7 @@ interface IBranchesContainerProps {
   readonly recentBranches: ReadonlyArray<Branch>
   readonly pullRequests: ReadonlyArray<PullRequest>
   readonly onRenameBranch: (branchName: string) => void
-  readonly onMakeDefaultBranch: (branchName: string) => void
+  readonly onSetAsDefaultBranch: (branchName: string) => void
   readonly onDeleteBranch: (branchName: string) => void
 
   /** All worktrees in the repository. */
@@ -295,7 +295,7 @@ export class BranchesContainer extends React.Component<
             )}
             renderPreList={this.renderPreList}
             onRenameBranch={this.props.onRenameBranch}
-            onMakeDefaultBranch={this.props.onMakeDefaultBranch}
+            onSetAsDefaultBranch={this.props.onSetAsDefaultBranch}
             onDeleteBranch={this.props.onDeleteBranch}
           />
         )
