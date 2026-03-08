@@ -224,7 +224,11 @@ export interface ILocalRepositoryState {
    * The name of the currently checked out branch, or `undefined` if the
    * branch name is not available (e.g. detached HEAD).
    */
-  readonly branchName?: string
+  readonly branchName: string | null
+  /**
+   * The name of the default branch, or `undefined` if not available.
+   */
+  readonly defaultBranchName: string | null
 }
 
 /**

@@ -27,16 +27,8 @@ import { SectionFilterList } from '../lib/section-filter-list'
 import { assertNever } from '../../lib/fatal-error'
 import { IAheadBehind } from '../../models/branch'
 import { ShowBranchNameInRepoListSetting } from '../../models/show-branch-name-in-repo-list'
-import { throttle } from 'lodash'
 
 const BlankSlateImage = encodePathAsUrl(__dirname, 'static/empty-no-repo.svg')
-
-const refreshRepositoryThrottled = throttle(
-  async (dispatcher: Dispatcher, repository: Repository) => {
-    await dispatcher.refreshRepository(repository)
-  },
-  5000
-)
 
 interface IRepositoriesListProps {
   readonly selectedRepository: Repositoryish | null
@@ -169,33 +161,19 @@ export class RepositoriesList extends React.Component<
 
   private shouldShowBranchName(item: IRepositoryListItem): boolean {
     const { showBranchNameInRepoList } = this.props
-
-    if (!(item.repository instanceof Repository) || !item.branchName) {
-      return false
-    }
-    if (showBranchNameInRepoList === ShowBranchNameInRepoListSetting.Never) {
-      return false
-    }
-    if (showBranchNameInRepoList === ShowBranchNameInRepoListSetting.Always) {
-      return true
-    }
-
-    if (
-      showBranchNameInRepoList ===
-      ShowBranchNameInRepoListSetting.WhenNotDefault
-    ) {
-      const branchState = this.props.dispatcher.getBranchesState(
-        item.repository
-      )
-      if (branchState.allBranches.length === 0) {
-        refreshRepositoryThrottled(this.props.dispatcher, item.repository)
+    switch (showBranchNameInRepoList) {
+      case ShowBranchNameInRepoListSetting.Never:
         return false
-      }
-      const defaultBranch = branchState.defaultBranch
-      return defaultBranch === null || item.branchName !== defaultBranch.name
+      case ShowBranchNameInRepoListSetting.Always:
+        return true
+      case ShowBranchNameInRepoListSetting.WhenNotDefault:
+        return item.branchName !== item.defaultBranchName
+      default:
+        assertNever(
+          showBranchNameInRepoList,
+          `Unknown show branch name setting: ${showBranchNameInRepoList}`
+        )
     }
-
-    assertNever(showBranchNameInRepoList, `Unknown show branch name setting`)
   }
 
   private renderItem = (item: IRepositoryListItem, matches: IMatches) => {
@@ -208,9 +186,7 @@ export class RepositoriesList extends React.Component<
         matches={matches}
         aheadBehind={item.aheadBehind}
         changedFilesCount={item.changedFilesCount}
-        branchName={
-          this.shouldShowBranchName(item) ? item.branchName : undefined
-        }
+        branchName={this.shouldShowBranchName(item) ? item.branchName : null}
       />
     )
   }
@@ -239,9 +215,7 @@ export class RepositoriesList extends React.Component<
     item: IRepositoryListItem
   ): JSX.Element | string | null => {
     const { repository, aheadBehind, changedFilesCount } = item
-    const branchName = this.shouldShowBranchName(item)
-      ? item.branchName
-      : undefined
+    const branchName = this.shouldShowBranchName(item) ? item.branchName : null
     const gitHubRepo =
       repository instanceof Repository ? repository.gitHubRepository : null
     const alias = repository instanceof Repository ? repository.alias : null

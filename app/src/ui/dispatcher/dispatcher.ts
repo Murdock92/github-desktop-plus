@@ -23,7 +23,6 @@ import {
   MultiCommitOperationConflictState,
   IMultiCommitOperationState,
   CommitOptions,
-  IBranchesState,
 } from '../../lib/app-state'
 import { assertNever, fatalError } from '../../lib/fatal-error'
 import {
@@ -2197,11 +2196,6 @@ export class Dispatcher {
     if (shouldCheckoutBranch && localBranch !== undefined) {
       await this.checkoutBranch(repository, localBranch)
     }
-  }
-
-  public getBranchesState(repository: Repository): IBranchesState {
-    const state = this.repositoryStateManager.get(repository)
-    return state.branchesState
   }
 
   private async openOrCloneRepository(url: string): Promise<Repository | null> {

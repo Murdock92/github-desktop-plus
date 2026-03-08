@@ -28,8 +28,8 @@ interface IRepositoryListItemProps {
   /** Number of uncommitted changes */
   readonly changedFilesCount: number
 
-  /** The name of the current branch, if available */
-  readonly branchName?: string
+  /** The name of the current branch, if it should be displayed */
+  readonly branchName: string | null
 }
 
 /** A repository item. */

@@ -3961,6 +3961,13 @@ export class AppStore extends TypedBaseStore<IAppState> {
     this._initializeCompare(repository)
 
     this.updateCurrentTutorialStep(repository)
+
+    if (!repository.defaultBranch && gitStore.defaultBranch) {
+      this._updateRepositoryDefaultBranch(
+        repository,
+        gitStore.defaultBranch.name
+      )
+    }
   }
 
   private async updateStashEntryCountMetric(
@@ -4005,7 +4012,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
     lookup.set(repository.id, {
       aheadBehind: status.branchAheadBehind || null,
       changedFilesCount: status.workingDirectory.files.length,
-      branchName: status.currentBranch,
+      branchName: status.currentBranch || null,
+      defaultBranchName: repository.defaultBranch,
     })
   }
   /**
@@ -4051,7 +4059,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
         // they were already set when calling `updateSidebarIndicator()` with
         // the status object.
         changedFilesCount: existing?.changedFilesCount ?? 0,
-        branchName: existing?.branchName,
+        branchName: existing?.branchName ?? null,
+        defaultBranchName: existing?.defaultBranchName ?? null,
       })
       this.emitUpdate()
     }
