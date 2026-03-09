@@ -7,7 +7,13 @@ import { promisify } from 'util'
 import glob = require('glob')
 const globPromise = promisify(glob)
 
-import { getDistPath, getDistRoot } from './dist-info'
+import {
+  getArchitectureForFileName,
+  getDistPath,
+  getDistRoot,
+} from './dist-info'
+import { rename } from 'fs/promises'
+import { getVersion } from '../app/package-info'
 
 function getArchitecture() {
   const arch = process.env.npm_config_arch || process.arch
@@ -19,7 +25,7 @@ function getArchitecture() {
   }
 }
 
-export async function packageElectronBuilder(): Promise<Array<string>> {
+export async function packageElectronBuilder(): Promise<string> {
   const distPath = getDistPath()
   const distRoot = getDistRoot()
 
@@ -48,7 +54,7 @@ export async function packageElectronBuilder(): Promise<Array<string>> {
     return Promise.reject(error)
   }
 
-  const appImageInstaller = `${distRoot}/GitHubDesktop-linux-*.AppImage`
+  const appImageInstaller = `${distRoot}/GitHubDesktopPlus-linux-*.AppImage`
 
   const files = await globPromise(appImageInstaller)
   if (files.length !== 1) {
@@ -59,7 +65,11 @@ export async function packageElectronBuilder(): Promise<Array<string>> {
     )
   }
 
-  const appImageInstallerPath = files[0]
+  const oldPath = files[0]
 
-  return Promise.resolve([appImageInstallerPath])
+  const newFileName = `GitHubDesktopPlus-v${getVersion()}-linux-${getArchitectureForFileName()}.AppImage`
+  const newPath = path.join(distRoot, newFileName)
+  await rename(oldPath, newPath)
+
+  return Promise.resolve(newPath)
 }

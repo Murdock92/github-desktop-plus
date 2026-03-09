@@ -189,17 +189,6 @@ jobs:
           AZURE_CLIENT_ID: ${{ secrets.AZURE_CODE_SIGNING_CLIENT_ID }}
           AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CODE_SIGNING_CLIENT_SECRET }}
 
-      # GitHubDesktop-linux-<arch>-<old_version>.<ext> -> GitHubDesktopPlus-<release_tag>-linux-<arch>.<ext>
-      - name: Rename Linux artifacts
-        if: ${{ runner.os == 'Linux' }}
-        run: |
-          for file in $(find ./dist -type f -name "GitHubDesktop-linux-*"); do
-            new_name=$(echo "$file" | sed -E "s/GitHubDesktop-linux-(.*)-([0-9]+\\.)+[0-9]+(-beta[0-9]+)?\\.(.*)/GitHubDesktopPlus-v${APP_VERSION}-linux-\\1.\\4/")
-            new_name=$(echo $new_name | sed -E "s/linux-amd64/linux-x86_64/")
-            new_name=$(echo $new_name | sed -E "s/linux-aarch64/linux-arm64/")
-            mv --verbose "$file" "$new_name"
-          done
-
       - name: Generate AppImage zsync
         if: ${{ runner.os == 'Linux' }}
         run:
@@ -209,10 +198,10 @@ jobs:
         with:
           name: ${{matrix.friendlyName}}-${{matrix.arch}}
           path: |
-            dist/GitHub Desktop Plus-${{matrix.arch}}.zip
-            dist/GitHubDesktop-*.nupkg
-            dist/GitHubDesktopSetup-${{matrix.arch}}.exe
-            dist/GitHubDesktopSetup-${{matrix.arch}}.msi
+            dist/*-macOS-*.zip
+            dist/*.exe
+            dist/*.msi
+            dist/*.nupkg
             dist/*.AppImage
             dist/*.AppImage.zsync
             dist/*.deb
@@ -241,20 +230,6 @@ jobs:
       - name: Display structure of downloaded files
         run: ls -R
         working-directory: './artifacts'
-
-      # GitHubDesktopSetup-<arch>.<ext> -> GitHubDesktopPlus-<release_tag>-windows-<arch>.<ext>
-      # GitHub Desktop Plus-<arch>.zip -> GitHubDesktopPlus-<release_tag>-macOS-<arch>.zip
-      - name: Rename Windows/macOS artifacts
-        run: |
-          for file in $(find ./artifacts -type f -name "GitHubDesktopSetup-*"); do
-            new_name=$(echo "$file" | sed -E "s/GitHubDesktopSetup-(.*)\\.(.*)/GitHubDesktopPlus-v${APP_VERSION}-windows-\\1.\\2/")
-            mv --verbose "$file" "$new_name"
-          done
-
-          find ./artifacts -type f -name "GitHub Desktop Plus-*.zip" -print0 | while IFS= read -r -d '' file; do
-            new_name=$(echo "$file" | sed -E "s/GitHub Desktop Plus-(.*)\\.zip/GitHubDesktopPlus-v${APP_VERSION}-macOS-\\1.zip/")
-            mv --verbose "$file" "$new_name"
-          done
 
       - name: Read release notes
         id: release_notes

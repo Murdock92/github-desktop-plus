@@ -33,7 +33,7 @@ export function getExecutableName() {
 }
 
 export function getOSXZipName() {
-  return `${productName}-${getDistArchitecture()}.zip`
+  return `GitHubDesktopPlus-v${version}-macOS-${getDistArchitecture()}.zip`
 }
 
 export function getOSXZipPath() {
@@ -42,7 +42,7 @@ export function getOSXZipPath() {
 
 export function getWindowsInstallerName() {
   const productName = getExecutableName()
-  return `${productName}Setup-${getDistArchitecture()}.msi`
+  return `${productName}-v${version}-windows-${getDistArchitecture()}.msi`
 }
 
 export function getWindowsInstallerPath() {
@@ -51,7 +51,7 @@ export function getWindowsInstallerPath() {
 
 export function getWindowsStandaloneName() {
   const productName = getExecutableName()
-  return `${productName}Setup-${getDistArchitecture()}.exe`
+  return `${productName}-v${version}-windows-${getDistArchitecture()}.exe`
 }
 
 export function getWindowsStandalonePath() {
@@ -64,7 +64,7 @@ export function getWindowsFullNugetPackageName(
   const architectureInfix = includeArchitecture
     ? `-${getDistArchitecture()}`
     : ''
-  return `${getWindowsIdentifierName()}-${version}${architectureInfix}-full.nupkg`
+  return `${getWindowsIdentifierName()}-v${version}${architectureInfix}-full.nupkg`
 }
 
 export function getWindowsFullNugetPackagePath() {
@@ -82,7 +82,7 @@ export function getWindowsDeltaNugetPackageName(
   const architectureInfix = includeArchitecture
     ? `-${getDistArchitecture()}`
     : ''
-  return `${getWindowsIdentifierName()}-${version}${architectureInfix}-delta.nupkg`
+  return `${getWindowsIdentifierName()}-v${version}${architectureInfix}-delta.nupkg`
 }
 
 export function getWindowsDeltaNugetPackagePath() {
@@ -95,7 +95,7 @@ export function getWindowsDeltaNugetPackagePath() {
 }
 
 export function getWindowsIdentifierName() {
-  return 'GitHubDesktop'
+  return 'GitHubDesktopPlus'
 }
 
 export function getBundleSizes() {
@@ -128,6 +128,16 @@ export function getDistArchitecture(): 'arm64' | 'x64' {
   // https://blogs.windows.com/windows-insider/2020/12/10/introducing-x64-emulation-in-preview-for-windows-10-on-arm-pcs-to-the-windows-insider-program/
 
   return 'x64'
+}
+
+export function getArchitectureForFileName(): 'arm64' | 'x86_64' {
+  const arch = getDistArchitecture()
+  switch (arch) {
+    case 'arm64':
+      return 'arm64'
+    case 'x64':
+      return 'x86_64'
+  }
 }
 
 export function getUpdatesURL() {

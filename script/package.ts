@@ -155,7 +155,7 @@ function packageWindows() {
         )
         const to = join(
           outputDir,
-          `${getWindowsIdentifierName()}-${getVersion()}-${arch}-${kind}.nupkg`
+          `${getWindowsIdentifierName()}-v${getVersion()}-${arch}-${kind}.nupkg`
         )
 
         console.log(`Renaming ${from} to ${to}`)
@@ -221,11 +221,11 @@ async function packageLinux() {
     await chmod(helperPath, 0o4755)
   }
   try {
-    const files = await packageElectronBuilder()
+    const appImagePackage = await packageElectronBuilder()
     const debianPackage = await packageDebian()
     const redhatPackage = await packageRedhat()
 
-    const installers = [...files, debianPackage, redhatPackage]
+    const installers = [appImagePackage, debianPackage, redhatPackage]
 
     console.log(`Installers created:`)
     for (const installer of installers) {

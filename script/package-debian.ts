@@ -7,7 +7,11 @@ const globPromise = promisify(glob)
 import { rename } from 'fs-extra'
 
 import { getVersion } from '../app/package-info'
-import { getDistPath, getDistRoot } from './dist-info'
+import {
+  getDistPath,
+  getDistRoot,
+  getArchitectureForFileName,
+} from './dist-info'
 
 function getArchitecture() {
   const arch = process.env.npm_config_arch || process.arch
@@ -109,7 +113,7 @@ export async function packageDebian(): Promise<string> {
 
   const oldPath = files[0]
 
-  const newFileName = `GitHubDesktop-linux-${getArchitecture()}-${getVersion()}.deb`
+  const newFileName = `GitHubDesktopPlus-v${getVersion()}-linux-${getArchitectureForFileName()}.deb`
   const newPath = join(distRoot, newFileName)
   await rename(oldPath, newPath)
 
