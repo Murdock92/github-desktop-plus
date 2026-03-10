@@ -530,3 +530,17 @@ jobs:
         working-directory: dist
         run: |
           s3cmd sync --delete-removed ./ s3://${{ secrets.R2_BUCKET_APT }}/
+
+  release_winget:
+    name: Publish winget package
+    needs: release_github
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    permissions: {}
+    steps:
+      - name: Publish to winget
+        uses: vedantmgoyal9/winget-releaser@v2
+        with:
+          identifier: polrivero.GitHubDesktopPlus
+          installers-regex: '\.exe$'
+          token: ${{ secrets.WINGET_TOKEN }}
