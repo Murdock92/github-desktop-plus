@@ -2679,12 +2679,24 @@ export class AppStore extends TypedBaseStore<IAppState> {
     this.commitSummaryWidth = constrain(this.commitSummaryWidth, 100, filesMax)
     this.stashedFilesWidth = constrain(this.stashedFilesWidth, 100, filesMax)
 
-    // Allocate branch first (highest priority), then worktree, then
+    // Allocate worktree first (highest priority), then branch, then
     // push-pull. Each subsequent allocation uses the clamped value of the
     // previous to prevent the total from exceeding the available space.
+    const worktreeDropdownMax =
+      available - defaultBranchDropdownWidth - defaultPushPullButtonWidth
+    const minimumWorktreeDropdownWidth =
+      defaultWorktreeDropdownWidth > available / numButtons
+        ? available / numButtons - 10
+        : defaultWorktreeDropdownWidth
+    this.worktreeDropdownWidth = constrain(
+      this.worktreeDropdownWidth,
+      minimumWorktreeDropdownWidth,
+      worktreeDropdownMax
+    )
+
     const branchDropdownMax =
       available -
-      (this.showWorktrees ? defaultWorktreeDropdownWidth : 0) -
+      (this.showWorktrees ? clamp(this.worktreeDropdownWidth) : 0) -
       defaultPushPullButtonWidth
     const minimumBranchDropdownWidth =
       defaultBranchDropdownWidth > available / numButtons
@@ -2696,22 +2708,10 @@ export class AppStore extends TypedBaseStore<IAppState> {
       branchDropdownMax
     )
 
-    const worktreeDropdownMax =
-      available - clamp(this.branchDropdownWidth) - defaultPushPullButtonWidth
-    const minimumWorktreeDropdownWidth =
-      defaultWorktreeDropdownWidth > available / numButtons
-        ? available / numButtons - 10
-        : defaultWorktreeDropdownWidth
-    this.worktreeDropdownWidth = constrain(
-      this.worktreeDropdownWidth,
-      minimumWorktreeDropdownWidth,
-      worktreeDropdownMax
-    )
-
     const pushPullButtonMaxWidth =
       available -
-      clamp(this.branchDropdownWidth) -
-      (this.showWorktrees ? clamp(this.worktreeDropdownWidth) : 0)
+      (this.showWorktrees ? clamp(this.worktreeDropdownWidth) : 0) -
+      clamp(this.branchDropdownWidth)
     const minimumPushPullToolBarWidth =
       defaultPushPullButtonWidth > available / numButtons
         ? available / numButtons - 10
