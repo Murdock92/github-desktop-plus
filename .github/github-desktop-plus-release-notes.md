@@ -1,26 +1,18 @@
-GitHub Desktop Plus v3.5.6-alpha5
+GitHub Desktop Plus v3.5.7-beta2
+
+Upstream: [GitHub Desktop v3.5.7-beta2 release notes](https://github.com/desktop/desktop/releases/tag/release-3.5.7-beta2)
+
+---
 
 ## **Changes and improvements:**
 
-- **Windows:** GitHub Desktop Plus is now available for installation using **winget**. Thanks @guplem!  
-  To install it, simply run the following command in your terminal:  
-  ```powershell
-  winget install polrivero.GitHubDesktopPlus
-  ```
+- Solved merge conflicts are now automatically staged when switching branches. This avoids the error message "you need to resolve your current index first" when trying to switch branches after solving merge conflicts.
 
-- Allow displaying the **branch name** next to the repository name in the repository list.   Thanks @guplem!  
-  - To enable this feature, go to **File > Options > Appearance > "Show current branch name next to repository name"** and select either *"Always"* or *"When it's not the default branch"*.
-  - I personally recommend the *"When it's not the default branch"* option, to quickly identify repositories that may have work in progress.
-  - Remember that you can right-click any branch in the branch list and select **"Set as default branch"**.
+- Improved the error message when trying to remove the currently checked out branch but the main branch is in use by another worktree.
 
-- The "Worktrees" selector has been moved to the left of the branch selector, so the order is now: **Worktrees | Branches | Pull/Push**. Thanks @devxoul!
-
-- Renamed the context menu item "Make the Default Branch" to "Set as Default Branch".
-
-- Improved the error messages when using the "Pull all" button with unpublished branches.
 
 ## **Fixes:**
 
-- The package name in Windows has been changed to `GitHubDesktopPlus`, so it should no longer conflict with the official GitHub Desktop app. Now, both apps can be installed and should work without interfering with each other.
+- The Winget package now uses the correct Windows app version. This should fix the issue where Winget is constantly trying to update GitHub Desktop Plus to the same version.
 
-- Improved visibility of **unpushed branches** in the branch list by using a higher-contrast color in light mode and using bold text.
+- Updated to a newer Electron version, which might fix some rendering issues related to screen brightness.
