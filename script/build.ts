@@ -354,6 +354,7 @@ function copyDependencies() {
     )
 
     const copilotDestination = path.resolve(outRoot, 'copilot')
+    rmSync(copilotDestination, { recursive: true, force: true })
     cpSync(copilotPkgDir, copilotDestination, {
       recursive: true,
     })
