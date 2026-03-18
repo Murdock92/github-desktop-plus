@@ -46,6 +46,10 @@ export function getDefaultAriaLabelForBranch(item: IBranchListItem): string {
     return branch.name
   }
 
+  if (Number.isNaN(authorDate.getTime())) {
+    return branch.name
+  }
+
   const { relativeText } = getRelativeTimeInfoFromDate(authorDate, true)
   return `${item.branch.name} ${relativeText}`
 }
