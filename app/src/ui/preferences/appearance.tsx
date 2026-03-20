@@ -378,7 +378,7 @@ export class Appearance extends React.Component<
 
   public render() {
     return (
-      <DialogContent>
+      <DialogContent className="appearance-tab">
         {this.renderSelectedTheme()}
         {this.renderRepositoryList()}
         {this.renderBranchSortOrder()}

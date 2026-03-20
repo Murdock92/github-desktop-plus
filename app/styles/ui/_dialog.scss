@@ -522,7 +522,8 @@ dialog {
       $default-tab-height: 430px;
       min-height: $default-tab-height;
 
-      &.accounts-tab {
+      &.accounts-tab,
+      &.appearance-tab {
         max-height: $default-tab-height;
         overflow: auto;
       }
