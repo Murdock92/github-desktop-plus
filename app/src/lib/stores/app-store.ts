@@ -2639,7 +2639,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
       getEnum(branchSortOrderKey, BranchSortOrder) ?? DEFAULT_BRANCH_SORT_ORDER
 
     this.commitDateDisplay =
-      getEnum(commitDateDisplayKey, CommitDateDisplay) ?? defaultCommitDateDisplay
+      getEnum(commitDateDisplayKey, CommitDateDisplay) ??
+      defaultCommitDateDisplay
 
     this.commitMessageGenerationDisclaimerLastSeen =
       getNumber(commitMessageGenerationDisclaimerLastSeenKey) ?? null

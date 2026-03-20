@@ -246,7 +246,9 @@ function renderRelativeTime(date: Date, showAbsolute: boolean) {
     return (
       <>
         {` • `}
-        <span>{formatDate(date, { dateStyle: 'medium', timeStyle: 'short' })}</span>
+        <span>
+          {formatDate(date, { dateStyle: 'medium', timeStyle: 'short' })}
+        </span>
       </>
     )
   }
