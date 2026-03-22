@@ -5,7 +5,9 @@ import {
   BrowserWindow,
   autoUpdater,
   nativeTheme,
+  ipcMain as electronIpcMain,
 } from 'electron'
+import { IpcMainEvent } from 'electron/main'
 import { shell } from '../lib/app-shell'
 import { Emitter, Disposable } from 'event-kit'
 import { join } from 'path'
@@ -21,12 +23,8 @@ import { ILaunchStats } from '../lib/stats'
 import { menuFromElectronMenu } from '../models/app-menu'
 import { now } from './now'
 import windowStateKeeper from 'electron-window-state'
-import * as ipcMain from './ipc-main'
 import * as ipcWebContents from './ipc-webcontents'
-import {
-  installNotificationCallback,
-  terminateDesktopNotifications,
-} from './notifications'
+import { installNotificationCallback } from './notifications'
 import { addTrustedIPCSender } from './trusted-ipc-sender'
 import { getUpdaterGUID } from '../lib/get-updater-guid'
 import { CLIAction } from '../lib/cli-action'
@@ -34,6 +32,7 @@ import { CLIAction } from '../lib/cli-action'
 export class AppWindow {
   private window: Electron.BrowserWindow
   private emitter = new Emitter()
+  private readonly cleanupTasks = new Array<() => void>()
 
   private _loadTime: number | null = null
   private _rendererReadyTime: number | null = null
@@ -44,6 +43,8 @@ export class AppWindow {
 
   // See https://github.com/desktop/desktop/pull/11162
   private shouldMaximizeOnShow = false
+  private quitting = false
+  private quittingEvenIfUpdating = false
 
   public constructor() {
     const savedWindowState = windowStateKeeper({
@@ -94,43 +95,27 @@ export class AppWindow {
     this.window = new BrowserWindow(windowOptions)
     addTrustedIPCSender(this.window.webContents)
 
-    installNotificationCallback(this.window)
+    this.addCleanupTask(installNotificationCallback(this.window))
 
     savedWindowState.manage(this.window)
     this.shouldMaximizeOnShow = savedWindowState.isMaximized
 
-    let quitting = false
-    let quittingEvenIfUpdating = false
-    app.on('before-quit', () => {
-      quitting = true
-    })
-
-    ipcMain.on('will-quit', event => {
-      quitting = true
-      event.returnValue = true
-    })
-
-    ipcMain.on('will-quit-even-if-updating', event => {
-      quitting = true
-      quittingEvenIfUpdating = true
-      event.returnValue = true
-    })
-
-    ipcMain.on('cancel-quitting', event => {
-      quitting = false
-      quittingEvenIfUpdating = false
-      event.returnValue = true
-    })
+    const onBeforeQuit = () => {
+      this.quitting = true
+    }
+    app.on('before-quit', onBeforeQuit)
+    this.addCleanupTask(() => app.removeListener('before-quit', onBeforeQuit))
 
     this.window.on('close', e => {
       const hideInsteadOfClose =
-        (__DARWIN__ || readMainProcessConfig().hideWindowOnQuit) && !quitting
+        (__DARWIN__ || readMainProcessConfig().hideWindowOnQuit) &&
+        !this.quitting
       // On macOS, closing the window doesn't mean the app is quitting. If the
       // app is updating, we will prevent the window from closing only when the
       // app is also quitting.
       if (
         !hideInsteadOfClose &&
-        !quittingEvenIfUpdating &&
+        !this.quittingEvenIfUpdating &&
         this.isDownloadingUpdate
       ) {
         e.preventDefault()
@@ -159,10 +144,9 @@ export class AppWindow {
         }
         return
       }
-      nativeTheme.removeAllListeners()
-      autoUpdater.removeAllListeners()
-      terminateDesktopNotifications()
     })
+
+    this.window.on('closed', () => this.cleanup())
   }
 
   public load() {
@@ -199,11 +183,37 @@ export class AppWindow {
       this.window.show()
     })
 
-    // TODO: This should be scoped by the window.
-    ipcMain.once('renderer-ready', (_, readyTime) => {
+    const onRendererReady = (event: IpcMainEvent, readyTime: number) => {
+      if (event.sender !== this.window.webContents) {
+        return
+      }
+
       this._rendererReadyTime = readyTime
       this.maybeEmitDidLoad()
-    })
+      electronIpcMain.removeListener('renderer-ready', onRendererReady)
+    }
+    electronIpcMain.on('renderer-ready', onRendererReady)
+    this.addCleanupTask(() =>
+      electronIpcMain.removeListener('renderer-ready', onRendererReady)
+    )
+
+    const onBackgroundColorUpdated = (event: IpcMainEvent, color: string) => {
+      if (event.sender !== this.window.webContents) {
+        return
+      }
+
+      this.window.setBackgroundColor(color)
+    }
+    electronIpcMain.on(
+      'update-window-background-color',
+      onBackgroundColorUpdated
+    )
+    this.addCleanupTask(() =>
+      electronIpcMain.removeListener(
+        'update-window-background-color',
+        onBackgroundColorUpdated
+      )
+    )
 
     this.window.on('focus', () =>
       ipcWebContents.send(this.window.webContents, 'focus')
@@ -215,13 +225,13 @@ export class AppWindow {
     registerWindowStateChangedEvents(this.window)
     this.window.loadURL(encodePathAsUrl(__dirname, 'index.html'))
 
-    nativeTheme.addListener('updated', () => {
+    const onNativeThemeUpdated = () => {
       ipcWebContents.send(this.window.webContents, 'native-theme-updated')
-    })
-
-    ipcMain.on('update-window-background-color', (_, color) => {
-      this.window.setBackgroundColor(color)
-    })
+    }
+    nativeTheme.addListener('updated', onNativeThemeUpdated)
+    this.addCleanupTask(() =>
+      nativeTheme.removeListener('updated', onNativeThemeUpdated)
+    )
 
     this.setupAutoUpdater()
   }
@@ -241,6 +251,10 @@ export class AppWindow {
   /** Is the page loaded and has the renderer signalled it's ready? */
   private get rendererLoaded(): boolean {
     return !!this.loadTime && !!this.rendererReadyTime
+  }
+
+  public get isLoaded(): boolean {
+    return this.rendererLoaded
   }
 
   public onClosed(fn: () => void) {
@@ -272,8 +286,29 @@ export class AppWindow {
     return this.window.isFocused()
   }
 
+  public get id() {
+    return this.window.id
+  }
+
   public focus() {
     this.window.focus()
+  }
+
+  public revealAndFocus() {
+    if (this.window.isMinimized()) {
+      this.window.restore()
+    }
+
+    if (!this.window.isVisible()) {
+      this.show()
+      return
+    }
+
+    this.window.focus()
+  }
+
+  public setTitle(title: string) {
+    this.window.setTitle(title)
   }
 
   /** Selects all the windows web contents */
@@ -406,42 +441,62 @@ export class AppWindow {
   }
 
   public setupAutoUpdater() {
-    autoUpdater.on('error', (error: Error) => {
+    const onAutoUpdaterError = (error: Error) => {
       this.isDownloadingUpdate = false
       ipcWebContents.send(this.window.webContents, 'auto-updater-error', error)
-    })
+    }
+    autoUpdater.on('error', onAutoUpdaterError)
+    this.addCleanupTask(() =>
+      autoUpdater.removeListener('error', onAutoUpdaterError)
+    )
 
-    autoUpdater.on('checking-for-update', () => {
+    const onCheckingForUpdate = () => {
       this.isDownloadingUpdate = false
       ipcWebContents.send(
         this.window.webContents,
         'auto-updater-checking-for-update'
       )
-    })
+    }
+    autoUpdater.on('checking-for-update', onCheckingForUpdate)
+    this.addCleanupTask(() =>
+      autoUpdater.removeListener('checking-for-update', onCheckingForUpdate)
+    )
 
-    autoUpdater.on('update-available', () => {
+    const onUpdateAvailable = () => {
       this.isDownloadingUpdate = true
       ipcWebContents.send(
         this.window.webContents,
         'auto-updater-update-available'
       )
-    })
+    }
+    autoUpdater.on('update-available', onUpdateAvailable)
+    this.addCleanupTask(() =>
+      autoUpdater.removeListener('update-available', onUpdateAvailable)
+    )
 
-    autoUpdater.on('update-not-available', () => {
+    const onUpdateNotAvailable = () => {
       this.isDownloadingUpdate = false
       ipcWebContents.send(
         this.window.webContents,
         'auto-updater-update-not-available'
       )
-    })
+    }
+    autoUpdater.on('update-not-available', onUpdateNotAvailable)
+    this.addCleanupTask(() =>
+      autoUpdater.removeListener('update-not-available', onUpdateNotAvailable)
+    )
 
-    autoUpdater.on('update-downloaded', () => {
+    const onUpdateDownloaded = () => {
       this.isDownloadingUpdate = false
       ipcWebContents.send(
         this.window.webContents,
         'auto-updater-update-downloaded'
       )
-    })
+    }
+    autoUpdater.on('update-downloaded', onUpdateDownloaded)
+    this.addCleanupTask(() =>
+      autoUpdater.removeListener('update-downloaded', onUpdateDownloaded)
+    )
   }
 
   public async checkForUpdates(url: string) {
@@ -507,6 +562,30 @@ export class AppWindow {
   public async showOpenDialog(options: Electron.OpenDialogOptions) {
     const { filePaths } = await dialog.showOpenDialog(this.window, options)
     return filePaths.length > 0 ? filePaths[0] : null
+  }
+
+  public markWillQuit() {
+    this.quitting = true
+  }
+
+  public markWillQuitEvenIfUpdating() {
+    this.quitting = true
+    this.quittingEvenIfUpdating = true
+  }
+
+  public cancelQuitting() {
+    this.quitting = false
+    this.quittingEvenIfUpdating = false
+  }
+
+  private addCleanupTask(task: () => void) {
+    this.cleanupTasks.push(task)
+  }
+
+  private cleanup() {
+    for (const task of this.cleanupTasks.splice(0).reverse()) {
+      task()
+    }
   }
 }
 

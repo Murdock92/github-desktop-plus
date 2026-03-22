@@ -2119,7 +2119,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
   /** This shouldn't be called directly. See `Dispatcher`. */
   public async _selectRepository(
-    repository: Repository | CloningRepository | null
+    repository: Repository | CloningRepository | null,
+    persistSelection: boolean = true
   ): Promise<Repository | null> {
     const previouslySelectedRepository = this.selectedRepository
 
@@ -2151,7 +2152,9 @@ export class AppStore extends TypedBaseStore<IAppState> {
       return Promise.resolve(null)
     }
 
-    setNumber(LastSelectedRepositoryIDKey, repository.id)
+    if (persistSelection) {
+      setNumber(LastSelectedRepositoryIDKey, repository.id)
+    }
 
     const previousRepositoryId = previouslySelectedRepository
       ? previouslySelectedRepository.id
@@ -6931,6 +6934,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
     }
 
     if (this.appIsFocused) {
+      this.updateMenuLabelsForSelectedRepository()
       this.repositoryIndicatorUpdater.resume()
       if (this.selectedRepository instanceof Repository) {
         this.startPullRequestUpdater(this.selectedRepository)
