@@ -5,9 +5,7 @@ import {
   BrowserWindow,
   autoUpdater,
   nativeTheme,
-  ipcMain as electronIpcMain,
 } from 'electron'
-import { IpcMainEvent } from 'electron/main'
 import { shell } from '../lib/app-shell'
 import { Emitter, Disposable } from 'event-kit'
 import { join } from 'path'
@@ -23,6 +21,7 @@ import { ILaunchStats } from '../lib/stats'
 import { menuFromElectronMenu } from '../models/app-menu'
 import { now } from './now'
 import windowStateKeeper from 'electron-window-state'
+import * as ipcMain from './ipc-main'
 import * as ipcWebContents from './ipc-webcontents'
 import { installNotificationCallback } from './notifications'
 import { addTrustedIPCSender } from './trusted-ipc-sender'
@@ -183,35 +182,28 @@ export class AppWindow {
       this.window.show()
     })
 
-    const onRendererReady = (event: IpcMainEvent, readyTime: number) => {
-      if (event.sender !== this.window.webContents) {
-        return
+    const rendererReadyListener = ipcMain.on(
+      'renderer-ready',
+      (_, readyTime) => {
+        this._rendererReadyTime = readyTime
+        this.maybeEmitDidLoad()
+        ipcMain.removeListener('renderer-ready', rendererReadyListener)
       }
-
-      this._rendererReadyTime = readyTime
-      this.maybeEmitDidLoad()
-      electronIpcMain.removeListener('renderer-ready', onRendererReady)
-    }
-    electronIpcMain.on('renderer-ready', onRendererReady)
+    )
     this.addCleanupTask(() =>
-      electronIpcMain.removeListener('renderer-ready', onRendererReady)
+      ipcMain.removeListener('renderer-ready', rendererReadyListener)
     )
 
-    const onBackgroundColorUpdated = (event: IpcMainEvent, color: string) => {
-      if (event.sender !== this.window.webContents) {
-        return
-      }
-
-      this.window.setBackgroundColor(color)
-    }
-    electronIpcMain.on(
+    const backgroundColorUpdatedListener = ipcMain.on(
       'update-window-background-color',
-      onBackgroundColorUpdated
+      (_, color) => {
+        this.window.setBackgroundColor(color)
+      }
     )
     this.addCleanupTask(() =>
-      electronIpcMain.removeListener(
+      ipcMain.removeListener(
         'update-window-background-color',
-        onBackgroundColorUpdated
+        backgroundColorUpdatedListener
       )
     )
 

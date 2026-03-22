@@ -14,6 +14,11 @@ type RequestResponseChannelListener<T extends keyof RequestResponseChannels> = (
   ...args: Parameters<RequestResponseChannels[T]>
 ) => ReturnType<RequestResponseChannels[T]>
 
+type SafeListener<E extends IpcMainEvent | IpcMainInvokeEvent, R> = ((
+  event: E,
+  ...args: any
+) => R | undefined) & { __isSafeListener: true }
+
 /**
  * Subscribes to the specified IPC channel and provides strong typing of
  * the channel name, and request parameters. This is the equivalent of
@@ -23,7 +28,9 @@ export function on<T extends keyof RequestChannels>(
   channel: T,
   listener: RequestChannelListener<T>
 ) {
-  ipcMain.on(channel, safeListener(listener))
+  const wrappedListener = safeListener(listener)
+  ipcMain.on(channel, wrappedListener)
+  return wrappedListener
 }
 
 /**
@@ -35,7 +42,9 @@ export function once<T extends keyof RequestChannels>(
   channel: T,
   listener: RequestChannelListener<T>
 ) {
-  ipcMain.once(channel, safeListener(listener))
+  const wrappedListener = safeListener(listener)
+  ipcMain.once(channel, wrappedListener)
+  return wrappedListener
 }
 
 /**
@@ -47,13 +56,15 @@ export function handle<T extends keyof RequestResponseChannels>(
   channel: T,
   listener: RequestResponseChannelListener<T>
 ) {
-  ipcMain.handle(channel, safeListener(listener))
+  const wrappedListener = safeListener(listener)
+  ipcMain.handle(channel, wrappedListener)
+  return wrappedListener
 }
 
 function safeListener<E extends IpcMainEvent | IpcMainInvokeEvent, R>(
   listener: (event: E, ...a: any) => R
-) {
-  return (event: E, ...args: any) => {
+): SafeListener<E, R> {
+  const wrapped = ((event: E, ...args: any) => {
     if (!isTrustedIPCSender(event.sender)) {
       log.error(
         `IPC message received from invalid sender: ${event.senderFrame?.url}`
@@ -62,5 +73,22 @@ function safeListener<E extends IpcMainEvent | IpcMainInvokeEvent, R>(
     }
 
     return listener(event, ...args)
-  }
+  }) as SafeListener<E, R>
+
+  wrapped.__isSafeListener = true
+  return wrapped
+}
+
+/**
+ * Unsubscribes from the specified IPC channel. This is the equivalent of using
+ * ipcMain.removeListener.
+ *
+ * **WARNING**: This must be called with the return value of the `on` or `once`
+ * function that was used to subscribe to the channel.
+ */
+export function removeListener<T extends keyof RequestChannels>(
+  channel: T,
+  listener: SafeListener<IpcMainEvent, void>
+) {
+  ipcMain.removeListener(channel, listener)
 }
