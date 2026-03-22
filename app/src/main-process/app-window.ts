@@ -147,12 +147,12 @@ export class AppWindow {
   }
 
   private shouldHideWindowInsteadOfClose() {
-    // If we are not the main window, we should always close instead of hiding. Otherwise we leak resources.
-    const thisIsMainWindow = this.window === BrowserWindow.getAllWindows()[0]
-    if (!thisIsMainWindow) {
+    // If this is not the last window, we should always close instead of hiding. Otherwise we leak resources.
+    const thisIsLastWindow = BrowserWindow.getAllWindows().length === 1
+    if (!thisIsLastWindow) {
       return false
     }
-    // Closing the main window: check the user preference (always hide on macOS to preserve old behavior),
+    // Closing the last window: check the user preference (always hide on macOS to preserve old behavior),
     // unless explicitly quitting (Ctrl+Q, Cmd+Q, Alt+F4).
     const userWantsToHideOnQuit =
       __DARWIN__ || readMainProcessConfig().hideWindowOnQuit
