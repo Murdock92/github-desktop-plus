@@ -77,7 +77,8 @@ function installGlobalNotificationCallback() {
   }
 
   onNotificationEvent<DesktopAliveEvent>((event, id, userInfo) => {
-    let window = notificationWindowOwners.get(id) ?? getFallbackNotificationWindow()
+    let window =
+      notificationWindowOwners.get(id) ?? getFallbackNotificationWindow()
 
     if (window !== null && window.isDestroyed()) {
       notificationWindows.delete(window)
