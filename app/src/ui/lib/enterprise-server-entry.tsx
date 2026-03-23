@@ -57,6 +57,7 @@ export class EnterpriseServerEntry extends React.Component<
           label="Enterprise or AE address"
           autoFocus={true}
           disabled={disableEntry}
+          value={this.state.serverAddress}
           onValueChanged={this.onServerAddressChanged}
           placeholder="https://github.example.com"
         />
