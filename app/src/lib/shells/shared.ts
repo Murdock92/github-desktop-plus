@@ -80,7 +80,7 @@ export async function findShellOrDefault(shell: Shell): Promise<AnyFoundShell> {
   if (found) {
     return found
   } else {
-    return available.find(s => s.shell === Default)!
+    return available.find(s => s.shell === Default) ?? available[0]
   }
 }
 
