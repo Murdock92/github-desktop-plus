@@ -149,10 +149,7 @@ describe('API', () => {
     })
 
     it('returns true for github.com', () => {
-      assert.equal(
-        isTrustedRemoteHost('https://github.com/foo/bar'),
-        true
-      )
+      assert.equal(isTrustedRemoteHost('https://github.com/foo/bar'), true)
     })
   })
 })
