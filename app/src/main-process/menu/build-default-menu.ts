@@ -112,6 +112,12 @@ export function buildDefaultMenu({
         click: emit('create-repository'),
         accelerator: 'CmdOrCtrl+N',
       },
+      {
+        label: __DARWIN__ ? 'Open new window…' : 'Open new window…',
+        id: 'new-window',
+        click: emit('open-new-window'),
+        accelerator: 'CmdOrCtrl+Alt+N',
+      },
       separator,
       {
         label: __DARWIN__ ? 'Add Local Repository…' : 'Add &local repository…',

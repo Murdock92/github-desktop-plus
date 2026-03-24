@@ -438,6 +438,8 @@ export class App extends React.Component<IAppProps, IAppState> {
     }
 
     switch (name) {
+      case 'open-new-window':
+        return this.openRepositoryInNewWindow(this.getRepository())
       case 'push':
         return this.push()
       case 'force-push':
@@ -3114,7 +3116,7 @@ export class App extends React.Component<IAppProps, IAppState> {
   }
 
   private openRepositoryInNewWindow = (
-    repository: Repository | CloningRepository
+    repository: Repository | CloningRepository | null
   ) => {
     if (!(repository instanceof Repository) || repository.missing) {
       return
