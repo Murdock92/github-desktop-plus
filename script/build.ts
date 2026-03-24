@@ -62,6 +62,7 @@ const isPublishableBuild = isPublishable()
 const isNonProductionRelease = getChannel() !== 'production'
 const isDevelopmentBuild = getChannel() === 'development'
 const useAdHocSigning = isGitHubDesktopPlus || isDevelopmentBuild
+const shouldSkipPackaging = process.env.DESKTOP_SKIP_PACKAGE === '1'
 
 const projectRoot = path.join(__dirname, '..')
 const entitlementsSuffix = useAdHocSigning ? '-dev' : ''
@@ -117,6 +118,11 @@ verifyInjectedSassVariables(outRoot)
     })
   })
   .then(() => {
+    if (shouldSkipPackaging) {
+      console.log('Skipping packaging…')
+      return [outRoot]
+    }
+
     console.log('Packaging…')
     return packageApp()
   })

@@ -1563,6 +1563,8 @@ export class App extends React.Component<IAppProps, IAppState> {
             dispatcher={this.props.dispatcher}
             repository={popup.repository}
             branch={popup.branch}
+            accounts={this.state.accounts}
+            cachedRepoRulesets={this.state.cachedRepoRulesets}
             onDismissed={onPopupDismissedFn}
           />
         )
