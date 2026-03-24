@@ -269,9 +269,9 @@ export function getNonGitHubUrl(repository: Repository): string | null {
     return null
   }
 
-  const httpsUrl = /^[^@]+@([^:]+):/.test(repository.url)
-    ? repository.url.replace(/^[^@]+@([^:]+):/, 'https://$1/')
-    : repository.url
+  // Convert potentially SSH URLs (e.g., git@github.com:user/repo.git) to HTTPS URLs (e.g., https://github.com/user/repo.git)
+  // If the URL is already HTTPS, this will be a no-op.
+  const httpsUrl = repository.url.replace(/^[^@]+@([^:]+):/, 'https://$1/')
 
   // Only return URLs that belong to trusted hosts.
   if (isTrustedRemoteHost(httpsUrl)) {
