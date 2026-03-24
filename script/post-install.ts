@@ -15,6 +15,20 @@ const options: SpawnSyncOptions = {
   stdio: 'inherit',
 }
 
+const captureOutputOptions: SpawnSyncOptions = {
+  cwd: root,
+  encoding: 'utf8',
+}
+
+// Some Windows CI runners do not expose an `npx` executable on PATH, so
+// invoke the locally installed Playwright CLI through the current Node binary.
+// Resolve from the exported package root since `playwright/cli` is not exported.
+const playwrightPackagePath = require.resolve('playwright/package.json')
+const playwrightCliPath = Path.join(
+  Path.dirname(playwrightPackagePath),
+  'cli.js'
+)
+
 /** Check if the caller has set the OFFLINe environment variable */
 function isOffline() {
   return process.env.OFFLINE === '1'
@@ -75,6 +89,31 @@ findYarnVersion(path => {
   if (result.status !== 0) {
     console.error('Failed to compile app dependencies. Code:', result.status)
     process.exit(result.status || 1)
+  }
+
+  // Capture output here so CI failures include the Playwright-specific error.
+  result = spawnSync(
+    process.execPath,
+    [playwrightCliPath, 'install', 'ffmpeg'],
+    captureOutputOptions
+  )
+
+  if (result.status !== 0) {
+    console.error(
+      'Error: failed to install Playwright ffmpeg (video recording may not work)',
+      '\nplatform:',
+      process.platform,
+      '\nstatus:',
+      result.status,
+      '\nsignal:',
+      result.signal,
+      '\nerror:',
+      result.error,
+      '\nstdout:',
+      result.stdout,
+      '\nstderr:',
+      result.stderr
+    )
   }
 
   if (process.platform === 'linux') {
