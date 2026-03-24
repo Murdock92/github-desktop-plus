@@ -139,6 +139,46 @@ describe('URL remote parsing', () => {
     assert.equal(remote.name, 'repo')
   })
 
+  it('parses SSH URLs with custom username on non-ghe.com host', () => {
+    const remote = parseRemote(
+      'org-123@github.example.com:someorg/somerepo.git'
+    )
+    assert(remote !== null)
+    assert.equal(remote.hostname, 'github.example.com')
+    assert.equal(remote.owner, 'someorg')
+    assert.equal(remote.name, 'somerepo')
+  })
+
+  it('parses SSH URLs with custom username and no .git suffix', () => {
+    const remote = parseRemote(
+      'deploy@gitlab.example.com:someorg/somerepo'
+    )
+    assert(remote !== null)
+    assert.equal(remote.hostname, 'gitlab.example.com')
+    assert.equal(remote.owner, 'someorg')
+    assert.equal(remote.name, 'somerepo')
+  })
+
+  it('parses ssh:// URLs with custom username', () => {
+    const remote = parseRemote(
+      'ssh://org-123@github.example.com/someorg/somerepo.git'
+    )
+    assert(remote !== null)
+    assert.equal(remote.hostname, 'github.example.com')
+    assert.equal(remote.owner, 'someorg')
+    assert.equal(remote.name, 'somerepo')
+  })
+
+  it('parses ssh:// URLs without a username', () => {
+    const remote = parseRemote(
+      'ssh://github.example.com/someorg/somerepo.git'
+    )
+    assert(remote !== null)
+    assert.equal(remote.hostname, 'github.example.com')
+    assert.equal(remote.owner, 'someorg')
+    assert.equal(remote.name, 'somerepo')
+  })
+
   it('does not parse invalid HTTP URLs when missing repo name', () => {
     const remote = parseRemote('https://github.com/someuser//')
     assert(remote === null)

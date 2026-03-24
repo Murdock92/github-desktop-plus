@@ -111,6 +111,31 @@ describe('repository-matching', () => {
       assert.equal(repo.owner, 'someuser')
     })
 
+    it('matches SSH URLs with non-standard username on enterprise', () => {
+      const accounts = [
+        new Account(
+          'octocat',
+          'https://github.example.com/api/v3',
+          '',
+          '',
+          0,
+          [],
+          '',
+          1,
+          '',
+          'free'
+        ),
+      ]
+      const repo = matchGitHubRepository(
+        accounts,
+        'org-123@github.example.com:someorg/somerepo.git',
+        null
+      )
+      assert(repo !== null)
+      assert.equal(repo.name, 'somerepo')
+      assert.equal(repo.owner, 'someorg')
+    })
+
     it(`doesn't match if there aren't any users with that endpoint`, () => {
       const accounts = [
         new Account(
