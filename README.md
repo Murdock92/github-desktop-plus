@@ -9,10 +9,10 @@ This is an **up-to-date** fork of [GitHub Desktop](https://desktop.github.com) w
 | <h4>Search commits by title, message, tag, or hash</h4> | <h4>Add multiple GitHub, Bitbucket & GitLab accounts</h4> |
 | :---: | :---: |
 | ![Commit search](docs/assets/github-desktop-plus-demo-search.webp) | ![Multiple accounts](docs/assets/github-desktop-plus-demo-multiaccount.webp) |
-| <h4>Create multiple stashes per branch</h4> | <h4>Buttons optimized for visual recognition</h4> |
-| ![Multiple stashes](docs/assets/github-desktop-plus-demo-stashes.webp) | ![Stash header](docs/assets/github-desktop-plus-demo-stash-header.webp) |
-| <h4>Indicator for missing branches in the remote</h4> | <h4>Indicator for merge commits</h4> |
-| ![Push indicator](docs/assets/github-desktop-plus-demo-push-indicator.webp) | ![Merge commits](docs/assets/github-desktop-plus-demo-merge-commits.webp) |
+| <h4>Create multiple stashes per branch</h4> | <h4>Native support for Git Worktrees</h4> |
+| ![Multiple stashes](docs/assets/github-desktop-plus-demo-stashes.webp) | ![Worktrees](docs/assets/github-desktop-plus-demo-worktrees.webp) |
+| <h4>Buttons optimized for visual recognition</h4> | <h4>Quickly find unpushed branches</h4> |
+| ![Stash header](docs/assets/github-desktop-plus-demo-stash-header.webp) | ![Branch push indicator](docs/assets/github-desktop-plus-demo-push-indicator.webp) |
 
 
 ## Additional Features in GitHub Desktop Plus ✨
@@ -118,6 +118,8 @@ Download and execute the installer from the [releases page](https://github.com/p
 Please note that the app doesn't autoupdate like the official GitHub Desktop, so you will need to manually download and install it every time you want to update.  
 For this reason, I recommend using Winget instead of the manual download.
 
+---
+
 </details>
 
 ### macOS
@@ -145,6 +147,8 @@ If you encounter the error "Apple could not verify this app is free of malware",
 Please note that the app doesn't autoupdate like the official GitHub Desktop, so you will need to manually download it every time you want to update.  
 For this reason, I recommend using Homebrew instead of the manual download.
 
+---
+
 </details>
 
 ### Debian / Ubuntu / Linux Mint / Pop!_OS / Zorin OS (APT)
@@ -152,6 +156,7 @@ For this reason, I recommend using Homebrew instead of the manual download.
 <details>
 
 <summary>Click to expand</summary>
+<br>
 
 Create the repository file:
 
@@ -166,6 +171,8 @@ sudo apt update
 sudo apt install github-desktop-plus
 ```
 
+---
+
 </details>
 
 
@@ -173,6 +180,7 @@ sudo apt install github-desktop-plus
 
 <details>
 <summary>Click to expand</summary>
+<br>
 
 Create the repository file:
 
@@ -188,18 +196,27 @@ sudo dnf check-update
 sudo dnf install github-desktop-plus
 ```
 
+---
+
 </details>
 
 ### Arch Linux / Manjaro (AUR)
 
 <details>
 <summary>Click to expand</summary>
+<br>
 
-Simply install `github-desktop-plus-bin` from the AUR.
+Simply install `github-desktop-plus-bin` from the AUR using your preferred AUR helper.
+
+```sh
+yay -S github-desktop-plus-bin
+```
 
 You can also build from source by installing `github-desktop-plus` or `github-desktop-plus-git` from the AUR.
 
 > `gnome-keyring` is required and the daemon must be launched either at login or when the X server / Wayland compositor is started. Normally this is handled by a display manager, but in other cases following the instructions found on the [Arch Wiki](https://wiki.archlinux.org/index.php/GNOME/Keyring#Using_the_keyring_outside_GNOME) will fix the issue of not being able to save login credentials.
+
+---
 
 </details>
 
@@ -208,12 +225,15 @@ You can also build from source by installing `github-desktop-plus` or `github-de
 
 <details>
 <summary>Click to expand</summary>
+<br>
 
-You can install GitHub Desktop Plus from Flathub by following the instructions at https://flathub.org/en/apps/io.github.pol_rivero.github-desktop-plus or by running the following command:
+Simply install GitHub Desktop Plus from [Flathub](https://flathub.org/en/apps/io.github.pol_rivero.github-desktop-plus):
 
 ```bash
 flatpak install flathub io.github.pol_rivero.github-desktop-plus
 ```
+
+---
 
 </details>
 
@@ -221,9 +241,9 @@ flatpak install flathub io.github.pol_rivero.github-desktop-plus
 
 <details>
 <summary>Click to expand</summary>
+<br>
 
-> [!NOTE]
-> I recommend using your distribution's native package manager (or Flatpak) instead of the AppImage.
+**NOTE:** I recommend using your distribution's native package manager (or Flatpak) instead of the AppImage.
 
 #### Using ["AM"/"AppMan"](https://github.com/ivan-hc/AM)
 
@@ -250,6 +270,7 @@ chmod +x GitHub-Desktop-Plus-*-linux-*.AppImage
 
 Finally, double-click the .AppImage file to run it.
 
+---
 
 </details>
 
@@ -300,7 +321,7 @@ yarn test:docker
 
 ## Why this fork?
 
-First of all, because shiftkey's fork is currently unmaintained (last commit was in February 2025), so all Linux users are no longer getting the latest features and fixes from the official GitHub Desktop repository.
+First of all, because [shiftkey's fork](https://github.com/shiftkey/desktop) is currently unmaintained (last commit was in February 2025), so all Linux users are no longer getting the latest features and fixes from the official GitHub Desktop repository.
 
 Secondly, I think the official GitHub Desktop app is very slow in terms of updates and lacks some advanced features that I'd like. This fork has low code quality requirements compared to the official repo, so I (and hopefully you as well) can add features and improvements quickly.  
 This fork also focuses on integrating nicely with Bitbucket, since I use it for work and haven't found a good Linux GUI client for it.
