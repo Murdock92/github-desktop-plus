@@ -2178,7 +2178,6 @@ export class AppStore extends TypedBaseStore<IAppState> {
         if (linkedRepo instanceof Repository) {
           repository = linkedRepo
           this.selectedRepository = repository
-          this.emitUpdate()
         } else {
           const exists = await pathExists(preferredPath)
           if (exists) {
@@ -2189,7 +2188,6 @@ export class AppStore extends TypedBaseStore<IAppState> {
             if (addedRepos.length > 0) {
               repository = addedRepos[0]
               this.selectedRepository = repository
-              this.emitUpdate()
             }
           } else {
             clearPreferredWorktreePath(repoPath)
@@ -7258,6 +7256,23 @@ export class AppStore extends TypedBaseStore<IAppState> {
     } catch (err) {
       this.emitError(err)
       return
+    }
+
+    if (repository instanceof Repository) {
+      if (repository.isLinkedWorktree) {
+        const repoPath = normalizePath(repository.path)
+        const mainRepo = this.repositories.find(
+          r =>
+            r instanceof Repository &&
+            !r.isLinkedWorktree &&
+            getPreferredWorktreePath(normalizePath(r.path)) === repoPath
+        )
+        if (mainRepo instanceof Repository) {
+          clearPreferredWorktreePath(normalizePath(mainRepo.path))
+        }
+      } else {
+        clearPreferredWorktreePath(normalizePath(repository.path))
+      }
     }
 
     const allRepositories = await this.repositoriesStore.getAll()

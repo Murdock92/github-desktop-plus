@@ -70,6 +70,8 @@ export class DeleteWorktreeDialog extends React.Component<
     const isDeletingCurrentWorktree =
       normalizePath(repository.path) === normalizePath(worktreePath)
 
+    const mainPathForCleanup = await getMainWorktreePath(repository)
+
     try {
       if (isDeletingCurrentWorktree) {
         // When deleting the currently selected worktree, we must switch away
@@ -94,6 +96,7 @@ export class DeleteWorktreeDialog extends React.Component<
         await dispatcher.removeRepository(repository, false)
       } else {
         await removeWorktree(repository, worktreePath)
+        await dispatcher.refreshRepository(repository)
       }
     } catch (e) {
       dispatcher.postError(e)
@@ -101,10 +104,7 @@ export class DeleteWorktreeDialog extends React.Component<
       return
     }
 
-    const mainPath = isDeletingCurrentWorktree
-      ? null
-      : await getMainWorktreePath(repository)
-    const resolvedMainPath = mainPath ?? repository.path
+    const resolvedMainPath = mainPathForCleanup ?? repository.path
     const preferred = getPreferredWorktreePath(resolvedMainPath)
     if (preferred && normalizePath(preferred) === normalizePath(worktreePath)) {
       clearPreferredWorktreePath(resolvedMainPath)
