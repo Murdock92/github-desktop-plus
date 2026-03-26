@@ -18,12 +18,16 @@ interface IRepositoryListItemContextMenuConfig {
   shellLabel: string | undefined
   externalEditorLabel: string | undefined
   askForConfirmationOnRemoveRepository: boolean
+  readonly isLinkedWorktreeRow?: boolean
+  readonly isPrunableWorktreeRow?: boolean
   onViewInBrowser: (repository: Repositoryish) => void
   onOpenInNewWindow?: (repository: Repositoryish) => void
   onOpenInShell: (repository: Repositoryish) => void
   onShowRepository: (repository: Repositoryish) => void
   onOpenInExternalEditor: (repository: Repositoryish) => void
   onRemoveRepository: (repository: Repositoryish) => void
+  onRemoveLinkedWorktree?: () => void
+  onPruneStaleWorktrees?: () => void
   onChangeRepositoryAlias: (repository: Repository) => void
   onRemoveRepositoryAlias: (repository: Repository) => void
   onChangeRepositoryGroupName: (repository: Repository) => void
@@ -35,6 +39,11 @@ export const generateRepositoryListContextMenu = (
   config: IRepositoryListItemContextMenuConfig
 ) => {
   const { repository } = config
+  const isLinkedWorktreeRow = config.isLinkedWorktreeRow ?? false
+  const isPrunableWorktreeRow = config.isPrunableWorktreeRow ?? false
+  const aliasMenuItems = buildAliasMenuItems(config)
+  const groupNameMenuItems = buildGroupNameMenuItems(config)
+  const identityMenuItems = [...aliasMenuItems, ...groupNameMenuItems]
   const missing = repository instanceof Repository && repository.missing
   const isGitHub =
     repository instanceof Repository &&
@@ -51,9 +60,8 @@ export const generateRepositoryListContextMenu = (
     : DefaultShellLabel
 
   const items: ReadonlyArray<IMenuItem> = [
-    ...buildAliasMenuItems(config),
-    ...buildGroupNameMenuItems(config),
-    { type: 'separator' },
+    ...identityMenuItems,
+    ...(identityMenuItems.length > 0 ? [{ type: 'separator' as const }] : []),
     {
       label: __DARWIN__ ? 'Copy Repo Name' : 'Copy repo name',
       action: () => clipboard.writeText(repository.name),
@@ -95,11 +103,39 @@ export const generateRepositoryListContextMenu = (
       action: () => config.onOpenInExternalEditor(repository),
       enabled: !missing,
     },
-    { type: 'separator' },
-    {
-      label: config.askForConfirmationOnRemoveRepository ? 'Remove…' : 'Remove',
-      action: () => config.onRemoveRepository(repository),
-    },
+    ...(isPrunableWorktreeRow && config.onPruneStaleWorktrees !== undefined
+      ? [
+          { type: 'separator' as const },
+          {
+            label: __DARWIN__
+              ? 'Prune Stale Worktrees'
+              : 'Prune stale worktrees',
+            action: config.onPruneStaleWorktrees,
+          },
+        ]
+      : []),
+    ...(!(isPrunableWorktreeRow && isLinkedWorktreeRow)
+      ? [
+          { type: 'separator' as const },
+          {
+            label: isPrunableWorktreeRow
+              ? config.askForConfirmationOnRemoveRepository
+                ? 'Remove…'
+                : 'Remove'
+              : isLinkedWorktreeRow
+              ? 'Delete…'
+              : config.askForConfirmationOnRemoveRepository
+              ? 'Remove…'
+              : 'Remove',
+            action:
+              !isPrunableWorktreeRow &&
+              isLinkedWorktreeRow &&
+              config.onRemoveLinkedWorktree !== undefined
+                ? config.onRemoveLinkedWorktree
+                : () => config.onRemoveRepository(repository),
+          },
+        ]
+      : []),
   ]
 
   return items
@@ -123,7 +159,7 @@ const buildAliasMenuItems = (
 ): ReadonlyArray<IMenuItem> => {
   const { repository } = config
 
-  if (!(repository instanceof Repository)) {
+  if (!(repository instanceof Repository) || config.isLinkedWorktreeRow) {
     return []
   }
 
@@ -150,7 +186,7 @@ const buildGroupNameMenuItems = (
 ): ReadonlyArray<IMenuItem> => {
   const { repository } = config
 
-  if (!(repository instanceof Repository)) {
+  if (!(repository instanceof Repository) || config.isLinkedWorktreeRow) {
     return []
   }
 
