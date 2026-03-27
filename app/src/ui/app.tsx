@@ -640,7 +640,7 @@ export class App extends React.Component<IAppProps, IAppState> {
     // Disable autoupdates so that the app doesn't revert to the desktop/desktop upstream whenever there is an update.
   }
 
-  private updateBranchWithContributionTargetBranch() {
+  private async updateBranchWithContributionTargetBranch() {
     const { selectedState } = this.state
     if (
       selectedState == null ||
@@ -658,6 +658,8 @@ export class App extends React.Component<IAppProps, IAppState> {
     if (!contributionTargetDefaultBranch) {
       return
     }
+
+    await this.props.dispatcher.fetch(repository, FetchType.UserInitiatedTask)
 
     this.props.dispatcher.initializeMergeOperation(
       repository,
