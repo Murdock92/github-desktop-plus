@@ -127,7 +127,9 @@ export const createHooksProxy = (
       return
     }
 
-    const stdinFile = hasStdin ? createStdinFile(await readStdin(conn.stdin)) : null
+    const stdinFile = hasStdin
+      ? createStdinFile(await readStdin(conn.stdin))
+      : null
 
     const args = [
       ...['hook', 'run', hookName],
