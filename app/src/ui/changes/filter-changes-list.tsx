@@ -318,7 +318,6 @@ export class FilterChangesList extends React.Component<
 > {
   private filterTextBox: TextBox | undefined = undefined
   private headerRef = createObservableRef<HTMLDivElement>()
-  private filterOptionsButtonRef: HTMLButtonElement | null = null
   private includeAllCheckBoxRef = React.createRef<Checkbox>()
   private filterListRef =
     React.createRef<AugmentedSectionFilterList<IChangesListItem>>()
@@ -1290,12 +1289,7 @@ export class FilterChangesList extends React.Component<
   }
 
   public focus() {
-    if (this.props.showChangesFilter) {
-      this.filterOptionsButtonRef?.focus()
-      return
-    }
-
-    this.includeAllCheckBoxRef.current?.focus()
+    this.filterListRef.current?.focus()
   }
 
   private onChangedFileClick = (

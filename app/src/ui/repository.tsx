@@ -852,6 +852,10 @@ export class RepositoryView extends React.Component<
       this.props.repository,
       section
     )
+
+    if (section === RepositorySectionTab.Changes) {
+      this.focusChangesNeeded = true
+    }
   }
 
   private onTabClicked = (tab: Tab) => {
@@ -861,6 +865,9 @@ export class RepositoryView extends React.Component<
       this.props.repository,
       section
     )
+    if (section === RepositorySectionTab.Changes) {
+      this.focusChangesNeeded = true
+    }
     if (!!section) {
       this.props.dispatcher.updateCompareForm(this.props.repository, {
         filterText: '',
