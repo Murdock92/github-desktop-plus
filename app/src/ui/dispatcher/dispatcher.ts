@@ -1,4 +1,5 @@
 import { Disposable, DisposableLike } from 'event-kit'
+import { clipboard } from 'electron'
 
 import {
   IAPIOrganization,
@@ -106,6 +107,7 @@ import { UncommittedChangesStrategy } from '../../models/uncommitted-changes-str
 import { BranchSortOrder } from '../../models/branch-sort-order'
 import { ShowBranchNameInRepoListSetting } from '../../models/show-branch-name-in-repo-list'
 import { CommitDateDisplay } from '../../models/commit-date-display'
+import { CopyPathNormalization } from '../../models/copy-path-normalization'
 import { IStashEntry } from '../../models/stash-entry'
 import { WorkflowPreferences } from '../../models/workflow-preferences'
 import { resolveWithin } from '../../lib/path'
@@ -133,6 +135,8 @@ import { CLIAction } from '../../lib/cli-action'
 import { IBranchNamePreset } from '../../models/branch-preset'
 import { BypassReasonType } from '../secret-scanning/bypass-push-protection-dialog'
 import { EditorOverride } from '../../models/editor-override'
+import { convertToCopyPath } from '../../lib/helpers/path'
+import { EOL } from 'os'
 
 /**
  * An error handler function.
@@ -4210,6 +4214,24 @@ export class Dispatcher {
   ) {
     return this.appStore._updateShowBranchNameInRepoList(
       showBranchNameInRepoList
+    )
+  }
+
+  public setCopyPathNormalization(value: CopyPathNormalization) {
+    return this.appStore._setCopyPathNormalization(value)
+  }
+
+  public copyPathToClipboard(path: string) {
+    this.copyPathsToClipboard([path])
+  }
+
+  public copyPathsToClipboard(paths: ReadonlyArray<string>) {
+    clipboard.writeText(
+      paths
+        .map(p =>
+          convertToCopyPath(p, this.appStore.getState().copyPathNormalization)
+        )
+        .join(EOL)
     )
   }
 

@@ -342,6 +342,7 @@ export class RepositoriesList extends React.Component<
       onViewInBrowser: this.props.onViewInBrowser,
       repository: item.repository,
       shellLabel: this.props.shellLabel,
+      onCopyRepoPath: path => this.props.dispatcher.copyPathToClipboard(path),
     })
 
     showContextualMenu(items)

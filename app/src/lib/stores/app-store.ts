@@ -183,6 +183,10 @@ import {
   ShowBranchNameInRepoListSetting,
 } from '../../models/show-branch-name-in-repo-list'
 import {
+  CopyPathNormalization,
+  defaultCopyPathNormalization,
+} from '../../models/copy-path-normalization'
+import {
   BranchSortOrder,
   DEFAULT_BRANCH_SORT_ORDER,
 } from '../../models/branch-sort-order'
@@ -504,6 +508,7 @@ export const showDiffCheckMarksDefault = true
 export const showDiffCheckMarksKey = 'diff-check-marks-visible'
 
 export const showBranchNameInRepoListKey = 'show-branch-name-in-repo-list'
+const copyPathNormalizationKey = 'copy-path-normalization'
 const branchSortOrderKey = 'branch-sort-order'
 const commitDateDisplayKey = 'commit-date-display'
 
@@ -675,6 +680,9 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
   private showBranchNameInRepoList: ShowBranchNameInRepoListSetting =
     defaultShowBranchNameInRepoListSetting
+
+  private copyPathNormalization: CopyPathNormalization =
+    defaultCopyPathNormalization
 
   private branchSortOrder: BranchSortOrder = DEFAULT_BRANCH_SORT_ORDER
 
@@ -1231,6 +1239,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
       underlineLinks: this.underlineLinks,
       showDiffCheckMarks: this.showDiffCheckMarks,
       showBranchNameInRepoList: this.showBranchNameInRepoList,
+      copyPathNormalization: this.copyPathNormalization,
       branchSortOrder: this.branchSortOrder,
       commitDateDisplay: this.commitDateDisplay,
       updateState: updateStore.state,
@@ -2642,6 +2651,10 @@ export class AppStore extends TypedBaseStore<IAppState> {
     this.showBranchNameInRepoList =
       getEnum(showBranchNameInRepoListKey, ShowBranchNameInRepoListSetting) ??
       defaultShowBranchNameInRepoListSetting
+
+    this.copyPathNormalization =
+      getEnum(copyPathNormalizationKey, CopyPathNormalization) ??
+      defaultCopyPathNormalization
 
     this.branchSortOrder =
       getEnum(branchSortOrderKey, BranchSortOrder) ?? DEFAULT_BRANCH_SORT_ORDER
@@ -9249,6 +9262,14 @@ export class AppStore extends TypedBaseStore<IAppState> {
         showBranchNameInRepoListKey,
         showBranchNameInRepoList
       )
+      this.emitUpdate()
+    }
+  }
+
+  public _setCopyPathNormalization(value: CopyPathNormalization) {
+    if (value !== this.copyPathNormalization) {
+      this.copyPathNormalization = value
+      localStorage.setItem(copyPathNormalizationKey, value)
       this.emitUpdate()
     }
   }

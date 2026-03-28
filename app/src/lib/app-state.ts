@@ -41,6 +41,7 @@ import { IStashEntry } from '../models/stash-entry'
 import { TutorialStep } from '../models/tutorial-step'
 import { UncommittedChangesStrategy } from '../models/uncommitted-changes-strategy'
 import { ShowBranchNameInRepoListSetting } from '../models/show-branch-name-in-repo-list'
+import { CopyPathNormalization } from '../models/copy-path-normalization'
 import { BranchSortOrder } from '../models/branch-sort-order'
 import { CommitDateDisplay } from '../models/commit-date-display'
 import { DragElement } from '../models/drag-drop'
@@ -402,6 +403,9 @@ export interface IAppState {
 
   /** Controls when to show the current branch name next to each repository in the repository list */
   readonly showBranchNameInRepoList: ShowBranchNameInRepoListSetting
+
+  /** Controls slash normalization applied when copying paths to the clipboard */
+  readonly copyPathNormalization: CopyPathNormalization
 
   /** Controls the sort order for branch lists in branch-selection views */
   readonly branchSortOrder: BranchSortOrder

@@ -47,6 +47,10 @@ import { Notifications } from './notifications'
 import { Accessibility } from './accessibility'
 import { ShowBranchNameInRepoListSetting } from '../../models/show-branch-name-in-repo-list'
 import {
+  CopyPathNormalization,
+  defaultCopyPathNormalization,
+} from '../../models/copy-path-normalization'
+import {
   ICustomIntegration,
   TargetPathArgument,
   isValidCustomIntegration,
@@ -104,6 +108,7 @@ interface IPreferencesProps {
   readonly onEditGlobalGitConfig: () => void
   readonly underlineLinks: boolean
   readonly showDiffCheckMarks: boolean
+  readonly copyPathNormalization: CopyPathNormalization
 }
 
 interface IPreferencesState {
@@ -172,6 +177,7 @@ interface IPreferencesState {
   readonly selectedGitHookEnvShell: string | undefined
   // Whether the preferences related to Git hooks environment have been changed
   readonly hooksPreferencesDirty: boolean
+  readonly copyPathNormalization: CopyPathNormalization
 }
 
 /**
@@ -244,6 +250,8 @@ export class Preferences extends React.Component<
       cacheGitHookEnv: getCacheHooksEnv(),
       selectedGitHookEnvShell: getGitHookEnvShell(),
       hooksPreferencesDirty: false,
+      copyPathNormalization:
+        this.props.copyPathNormalization ?? defaultCopyPathNormalization,
     }
   }
 
@@ -505,6 +513,8 @@ export class Preferences extends React.Component<
             onUseCustomShellChanged={this.onUseCustomShellChanged}
             onCustomShellChanged={this.onCustomShellChanged}
             onBranchPresetScriptChanged={this.onBranchPresetScriptChanged}
+            copyPathNormalization={this.state.copyPathNormalization}
+            onCopyPathNormalizationChanged={this.onCopyPathNormalizationChanged}
           />
         )
         break
@@ -832,6 +842,12 @@ export class Preferences extends React.Component<
     this.setState({ branchSortOrder })
   }
 
+  private onCopyPathNormalizationChanged = (
+    copyPathNormalization: CopyPathNormalization
+  ) => {
+    this.setState({ copyPathNormalization })
+  }
+
   private onCommitDateDisplayChanged = (
     commitDateDisplay: CommitDateDisplay
   ) => {
@@ -1054,6 +1070,7 @@ export class Preferences extends React.Component<
     dispatcher.setShowBranchNameInRepoList(this.state.showBranchNameInRepoList)
     dispatcher.setBranchSortOrder(this.state.branchSortOrder)
     dispatcher.setCommitDateDisplay(this.state.commitDateDisplay)
+    dispatcher.setCopyPathNormalization(this.state.copyPathNormalization)
 
     this.props.onDismissed()
   }

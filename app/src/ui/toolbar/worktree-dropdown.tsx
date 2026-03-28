@@ -94,6 +94,7 @@ export class WorktreeDropdown extends React.Component<
       isLocked: worktree.isLocked,
       onRenameWorktree: this.onRenameWorktree,
       onRemoveWorktree: this.onRemoveWorktree,
+      onCopyPath: path => this.props.dispatcher.copyPathToClipboard(path),
     })
 
     showContextualMenu(items)
@@ -178,6 +179,7 @@ export class WorktreeDropdown extends React.Component<
       isLocked: currentWorktree.isLocked,
       onRenameWorktree: this.onRenameWorktree,
       onRemoveWorktree: this.onRemoveWorktree,
+      onCopyPath: path => this.props.dispatcher.copyPathToClipboard(path),
     })
 
     showContextualMenu(items)

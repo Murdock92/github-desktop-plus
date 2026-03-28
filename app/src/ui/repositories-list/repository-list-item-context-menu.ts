@@ -28,6 +28,7 @@ interface IRepositoryListItemContextMenuConfig {
   onRemoveRepositoryAlias: (repository: Repository) => void
   onChangeRepositoryGroupName: (repository: Repository) => void
   onRemoveRepositoryGroupName: (repository: Repository) => void
+  onCopyRepoPath: (path: string) => void
 }
 
 export const generateRepositoryListContextMenu = (
@@ -59,7 +60,7 @@ export const generateRepositoryListContextMenu = (
     },
     {
       label: __DARWIN__ ? 'Copy Repo Path' : 'Copy repo path',
-      action: () => clipboard.writeText(repository.path),
+      action: () => config.onCopyRepoPath(repository.path),
     },
     { type: 'separator' },
     {

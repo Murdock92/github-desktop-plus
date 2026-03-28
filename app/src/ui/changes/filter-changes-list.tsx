@@ -36,7 +36,6 @@ import { ChangedFile } from './changed-file'
 import { IAutocompletionProvider } from '../autocompletion'
 import { showContextualMenu } from '../../lib/menu-item'
 import { arrayEquals } from '../../lib/equality'
-import { clipboard } from 'electron'
 import { basename } from 'path'
 import { Commit, ICommitContext } from '../../models/commit'
 import {
@@ -53,7 +52,6 @@ import { hasWritePermission } from '../../models/github-repository'
 import { hasConflictedFiles } from '../../lib/status'
 import { createObservableRef } from '../lib/observable-ref'
 import { Popup, PopupType } from '../../models/popup'
-import { EOL } from 'os'
 import { RepoRulesInfo } from '../../models/repo-rules'
 import { IAheadBehind } from '../../models/branch'
 import { StashDiffViewerId } from '../stashing'
@@ -656,7 +654,7 @@ export class FilterChangesList extends React.Component<
       label: CopyFilePathLabel,
       action: () => {
         const fullPath = Path.join(this.props.repository.path, file.path)
-        clipboard.writeText(fullPath)
+        this.props.dispatcher.copyPathToClipboard(fullPath)
       },
     }
   }
@@ -666,7 +664,8 @@ export class FilterChangesList extends React.Component<
   ): IMenuItem => {
     return {
       label: CopyRelativeFilePathLabel,
-      action: () => clipboard.writeText(Path.normalize(file.path)),
+      action: () =>
+        this.props.dispatcher.copyPathToClipboard(Path.normalize(file.path)),
     }
   }
 
@@ -679,7 +678,7 @@ export class FilterChangesList extends React.Component<
         const fullPaths = files.map(file =>
           Path.join(this.props.repository.path, file.path)
         )
-        clipboard.writeText(fullPaths.join(EOL))
+        this.props.dispatcher.copyPathsToClipboard(fullPaths)
       },
     }
   }
@@ -691,7 +690,7 @@ export class FilterChangesList extends React.Component<
       label: CopySelectedRelativePathsLabel,
       action: () => {
         const paths = files.map(file => Path.normalize(file.path))
-        clipboard.writeText(paths.join(EOL))
+        this.props.dispatcher.copyPathsToClipboard(paths)
       },
     }
   }

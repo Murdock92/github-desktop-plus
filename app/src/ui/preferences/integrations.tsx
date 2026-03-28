@@ -8,6 +8,10 @@ import { suggestedExternalEditor } from '../../lib/editors/shared'
 import { CustomIntegrationForm } from './custom-integration-form'
 import { ICustomIntegration } from '../../lib/custom-integration'
 import { enableCustomIntegration } from '../../lib/feature-flag'
+import {
+  CopyPathNormalization,
+  defaultCopyPathNormalization,
+} from '../../models/copy-path-normalization'
 
 const CustomIntegrationValue = 'other'
 
@@ -33,6 +37,10 @@ interface IIntegrationsPreferencesProps {
   readonly onBranchPresetScriptChanged: (
     branchPresetScript: ICustomIntegration
   ) => void
+  readonly copyPathNormalization: CopyPathNormalization
+  readonly onCopyPathNormalizationChanged: (
+    value: CopyPathNormalization
+  ) => void
 }
 
 interface IIntegrationsPreferencesState {
@@ -43,6 +51,7 @@ interface IIntegrationsPreferencesState {
   readonly useCustomShell: boolean
   readonly customShell: ICustomIntegration
   readonly branchPresetScript: ICustomIntegration
+  readonly copyPathNormalization: CopyPathNormalization
 }
 
 export class Integrations extends React.Component<
@@ -63,6 +72,8 @@ export class Integrations extends React.Component<
       useCustomShell: this.props.useCustomShell,
       customShell: this.props.customShell,
       branchPresetScript: this.props.branchPresetScript,
+      copyPathNormalization:
+        this.props.copyPathNormalization ?? defaultCopyPathNormalization,
     }
   }
 
@@ -395,6 +406,30 @@ export class Integrations extends React.Component<
     this.props.onBranchPresetScriptChanged(branchPresetScript)
   }
 
+  private onCopyPathNormalizationChanged = (
+    event: React.FormEvent<HTMLSelectElement>
+  ) => {
+    const value = event.currentTarget.value as CopyPathNormalization
+    this.setState({ copyPathNormalization: value })
+    this.props.onCopyPathNormalizationChanged(value)
+  }
+
+  private renderCopyPathNormalization() {
+    return (
+      <Select
+        label="Normalize copied paths"
+        value={this.state.copyPathNormalization}
+        onChange={this.onCopyPathNormalizationChanged}
+      >
+        <option value={CopyPathNormalization.None}>{"Don't normalize"}</option>
+        <option value={CopyPathNormalization.Unix}>Convert to UNIX (/)</option>
+        <option value={CopyPathNormalization.Windows}>
+          Convert to Windows (\)
+        </option>
+      </Select>
+    )
+  }
+
   public render() {
     if (!enableCustomIntegration()) {
       return (
@@ -402,6 +437,7 @@ export class Integrations extends React.Component<
           <h2>Applications</h2>
           <Row>{this.renderExternalEditor()}</Row>
           <Row>{this.renderSelectedShell()}</Row>
+          <Row>{this.renderCopyPathNormalization()}</Row>
         </DialogContent>
       )
     }
@@ -435,6 +471,7 @@ export class Integrations extends React.Component<
             </LinkButton>
           </p>
         </fieldset>
+        <Row>{this.renderCopyPathNormalization()}</Row>
       </DialogContent>
     )
   }

@@ -1697,6 +1697,7 @@ export class App extends React.Component<IAppProps, IAppState> {
             showBranchNameInRepoList={this.state.showBranchNameInRepoList}
             branchSortOrder={this.state.branchSortOrder}
             commitDateDisplay={this.state.commitDateDisplay}
+            copyPathNormalization={this.state.copyPathNormalization}
           />
         )
       case PopupType.RepositorySettings: {
@@ -3327,6 +3328,7 @@ export class App extends React.Component<IAppProps, IAppState> {
       shellLabel: this.state.useCustomShell
         ? undefined
         : this.state.selectedShell,
+      onCopyRepoPath: path => this.props.dispatcher.copyPathToClipboard(path),
     })
 
     showContextualMenu(items)
