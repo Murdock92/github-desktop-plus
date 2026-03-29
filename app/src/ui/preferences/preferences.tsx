@@ -73,6 +73,7 @@ interface IPreferencesProps {
   readonly onDismissed: () => void
   readonly useWindowsOpenSSH: boolean
   readonly showCommitLengthWarning: boolean
+  readonly showCommitAuthorInfo: boolean
   readonly notificationsEnabled: boolean
   readonly optOutOfUsageTracking: boolean
   readonly useExternalCredentialHelper: boolean
@@ -122,6 +123,7 @@ interface IPreferencesState {
   readonly disallowedCharactersMessage: string | null
   readonly useWindowsOpenSSH: boolean
   readonly showCommitLengthWarning: boolean
+  readonly showCommitAuthorInfo: boolean
   readonly notificationsEnabled: boolean
   readonly optOutOfUsageTracking: boolean
   readonly useExternalCredentialHelper: boolean
@@ -216,6 +218,7 @@ export class Preferences extends React.Component<
         this.props.branchPresetScript ?? DefaultCustomIntegration,
       useWindowsOpenSSH: false,
       showCommitLengthWarning: false,
+      showCommitAuthorInfo: false,
       notificationsEnabled: true,
       optOutOfUsageTracking: false,
       useExternalCredentialHelper: false,
@@ -298,6 +301,7 @@ export class Preferences extends React.Component<
       initialDefaultBranch,
       useWindowsOpenSSH: this.props.useWindowsOpenSSH,
       showCommitLengthWarning: this.props.showCommitLengthWarning,
+      showCommitAuthorInfo: this.props.showCommitAuthorInfo,
       notificationsEnabled: this.props.notificationsEnabled,
       optOutOfUsageTracking: this.props.optOutOfUsageTracking,
       useExternalCredentialHelper: this.props.useExternalCredentialHelper,
@@ -587,6 +591,8 @@ export class Preferences extends React.Component<
             onBranchSortOrderChanged={this.onBranchSortOrderChanged}
             commitDateDisplay={this.state.commitDateDisplay}
             onCommitDateDisplayChanged={this.onCommitDateDisplayChanged}
+            showCommitAuthorInfo={this.state.showCommitAuthorInfo}
+            onShowCommitAuthorInfoChanged={this.onShowCommitAuthorInfoChanged}
           />
         )
         break
@@ -717,6 +723,12 @@ export class Preferences extends React.Component<
     showCommitLengthWarning: boolean
   ) => {
     this.setState({ showCommitLengthWarning })
+  }
+
+  private onShowCommitAuthorInfoChanged = (
+    showCommitAuthorInfo: boolean
+  ) => {
+    this.setState({ showCommitAuthorInfo })
   }
 
   private onNotificationsEnabledChanged = (notificationsEnabled: boolean) => {
@@ -983,6 +995,7 @@ export class Preferences extends React.Component<
 
     dispatcher.setUseWindowsOpenSSH(this.state.useWindowsOpenSSH)
     dispatcher.setShowCommitLengthWarning(this.state.showCommitLengthWarning)
+    dispatcher.setShowCommitAuthorInfo(this.state.showCommitAuthorInfo)
     dispatcher.setNotificationsEnabled(this.state.notificationsEnabled)
 
     await dispatcher.setStatsOptOut(this.state.optOutOfUsageTracking, false)

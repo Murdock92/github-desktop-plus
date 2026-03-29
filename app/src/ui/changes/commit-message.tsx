@@ -37,7 +37,7 @@ import {
   isAttributableEmailFor,
   lookupPreferredEmail,
 } from '../../lib/email'
-import { setGlobalConfigValue } from '../../lib/git/config'
+import { setGlobalConfigValue, IConfigValueOrigin } from '../../lib/git/config'
 import { Popup, PopupType } from '../../models/popup'
 import { RepositorySettingsTab } from '../repository-settings/repository-settings'
 import { IdealSummaryLength } from '../../lib/wrap-rich-text-commit-message'
@@ -69,6 +69,29 @@ import {
 import { AriaLiveContainer } from '../accessibility/aria-live-container'
 import { HookProgress } from '../../lib/git'
 import { assertNever } from '../../lib/fatal-error'
+
+function formatConfigOriginTooltip(
+  fieldName: string,
+  configOrigin: IConfigValueOrigin
+): string {
+  const filePath = configOrigin.origin.replace(/^file:/, '')
+
+  let scopeDescription: string
+  if (configOrigin.scope === 'local') {
+    scopeDescription = 'local (.git/config)'
+  } else if (configOrigin.scope === 'system') {
+    scopeDescription = 'system'
+  } else if (configOrigin.scope === 'global') {
+    const isStandardGlobalPath =
+      /[/\\]\.gitconfig$/i.test(filePath) ||
+      /[/\\]\.config[/\\]git[/\\]config$/i.test(filePath)
+    scopeDescription = isStandardGlobalPath ? 'global' : 'global (via includeIf)'
+  } else {
+    scopeDescription = configOrigin.scope
+  }
+
+  return `${fieldName}: ${configOrigin.value}\nSource: ${scopeDescription}\n${filePath}`
+}
 
 const addAuthorIcon: OcticonSymbolVariant = {
   w: 18,
@@ -240,6 +263,10 @@ interface ICommitMessageProps {
     repository: Repository,
     options: Partial<CommitOptions>
   ) => void
+
+  readonly commitAuthorNameOrigin?: IConfigValueOrigin | null
+  readonly commitAuthorEmailOrigin?: IConfigValueOrigin | null
+  readonly showCommitAuthorInfo?: boolean
 }
 
 interface ICommitMessageState {
@@ -770,7 +797,7 @@ export class CommitMessage extends React.Component<
       }
     }
 
-    return (
+    const avatar = (
       <CommitMessageAvatar
         user={avatarUser}
         email={commitAuthor?.email}
@@ -790,6 +817,32 @@ export class CommitMessage extends React.Component<
         repository={repository}
         accounts={this.props.accounts}
       />
+    )
+
+    if (!this.props.showCommitAuthorInfo || !commitAuthor) {
+      return avatar
+    }
+
+    const { commitAuthorNameOrigin, commitAuthorEmailOrigin } = this.props
+    const nameTooltip = commitAuthorNameOrigin
+      ? formatConfigOriginTooltip('Name', commitAuthorNameOrigin)
+      : undefined
+    const emailTooltip = commitAuthorEmailOrigin
+      ? formatConfigOriginTooltip('Email', commitAuthorEmailOrigin)
+      : undefined
+
+    return (
+      <div className="commit-author-identity">
+        {avatar}
+        <div className="commit-author-info">
+          <span className="commit-author-name" title={nameTooltip}>
+            {commitAuthor.name}
+          </span>
+          <span className="commit-author-email" title={emailTooltip}>
+            {commitAuthor.email}
+          </span>
+        </div>
+      </div>
     )
   }
 
@@ -1738,9 +1791,10 @@ export class CommitMessage extends React.Component<
         onContextMenu={this.onContextMenu}
         ref={this.wrapperRef}
       >
-        <div className={summaryClassName} ref={this.summaryGroupRef}>
-          {this.renderAvatar()}
+        {this.props.showCommitAuthorInfo && this.renderAvatar()}
 
+        <div className={summaryClassName} ref={this.summaryGroupRef}>
+          {!this.props.showCommitAuthorInfo && this.renderAvatar()}
           <AutocompletingInput
             required={true}
             label={this.props.showInputLabels === true ? 'Summary' : undefined}

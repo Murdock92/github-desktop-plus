@@ -21,8 +21,10 @@ import { GitConfigLocation, GitConfig } from './git-config'
 import {
   getConfigValue,
   getGlobalConfigValue,
+  getConfigValueWithOrigin,
   removeConfigValue,
   setConfigValue,
+  IConfigValueOrigin,
 } from '../../lib/git/config'
 import {
   gitAuthorNameIsValid,
@@ -72,6 +74,8 @@ interface IRepositorySettingsState {
   readonly errors?: ReadonlyArray<JSX.Element | string>
   readonly forkContributionTarget: ForkContributionTarget
   readonly isLoadingGitConfig: boolean
+  readonly nameOrigin: IConfigValueOrigin | null
+  readonly emailOrigin: IConfigValueOrigin | null
   readonly availableEditors: ReadonlyArray<string>
   readonly useDefaultEditor: boolean
   readonly selectedExternalEditor: string | null
@@ -106,6 +110,8 @@ export class RepositorySettings extends React.Component<
       initialCommitterName: null,
       initialCommitterEmail: null,
       isLoadingGitConfig: true,
+      nameOrigin: null,
+      emailOrigin: null,
       availableEditors: [],
       useDefaultEditor: !props.repository.customEditorOverride,
       selectedExternalEditor:
@@ -163,6 +169,17 @@ export class RepositorySettings extends React.Component<
       committerEmail = localCommitterEmail ?? ''
     }
 
+    let nameOrigin: IConfigValueOrigin | null = null
+    let emailOrigin: IConfigValueOrigin | null = null
+    try {
+      ;[nameOrigin, emailOrigin] = await Promise.all([
+        getConfigValueWithOrigin(this.props.repository, 'user.name'),
+        getConfigValueWithOrigin(this.props.repository, 'user.email'),
+      ])
+    } catch (e) {
+      log.warn('Failed to get config value origins', e)
+    }
+
     this.setState({
       gitConfigLocation,
       committerName,
@@ -174,6 +191,8 @@ export class RepositorySettings extends React.Component<
       initialCommitterName: localCommitterName,
       initialCommitterEmail: localCommitterEmail,
       isLoadingGitConfig: false,
+      nameOrigin,
+      emailOrigin,
     })
   }
 
@@ -307,6 +326,8 @@ export class RepositorySettings extends React.Component<
             onNameChanged={this.onCommitterNameChanged}
             onEmailChanged={this.onCommitterEmailChanged}
             isLoadingGitConfig={this.state.isLoadingGitConfig}
+            nameOrigin={this.state.nameOrigin}
+            emailOrigin={this.state.emailOrigin}
           />
         )
       }

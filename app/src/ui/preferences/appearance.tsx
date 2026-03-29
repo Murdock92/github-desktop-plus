@@ -39,6 +39,8 @@ interface IAppearanceProps {
   readonly onBranchSortOrderChanged: (sortOrder: BranchSortOrder) => void
   readonly commitDateDisplay: CommitDateDisplay
   readonly onCommitDateDisplayChanged: (value: CommitDateDisplay) => void
+  readonly showCommitAuthorInfo: boolean
+  readonly onShowCommitAuthorInfoChanged: (show: boolean) => void
 }
 
 interface IAppearanceState {
@@ -411,7 +413,31 @@ export class Appearance extends React.Component<
         {this.renderWorktreeVisibility()}
         {this.renderSelectedTabSize()}
         {this.renderTitleBarStyleDropdown()}
+        {this.renderCommitAuthorInfo()}
       </DialogContent>
+    )
+  }
+
+  private onShowCommitAuthorInfoChanged = (
+    event: React.FormEvent<HTMLInputElement>
+  ) => {
+    this.props.onShowCommitAuthorInfoChanged(event.currentTarget.checked)
+  }
+
+  private renderCommitAuthorInfo() {
+    return (
+      <div className="advanced-section">
+        <h2>Commit Author</h2>
+        <Checkbox
+          label="Show commit author name, email, and their git config source"
+          value={
+            this.props.showCommitAuthorInfo
+              ? CheckboxValue.On
+              : CheckboxValue.Off
+          }
+          onChange={this.onShowCommitAuthorInfoChanged}
+        />
+      </div>
     )
   }
 }

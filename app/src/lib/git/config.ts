@@ -282,3 +282,40 @@ async function removeConfigValueInPath(
 
   await git(flags, path || __dirname, 'removeConfigValueInPath', options)
 }
+
+export interface IConfigValueOrigin {
+  readonly value: string
+  readonly scope: string
+  readonly origin: string
+}
+
+/**
+ * Look up a config value along with its source file and scope.
+ * Requires Git 2.26+ for --show-scope.
+ */
+export async function getConfigValueWithOrigin(
+  repository: Repository,
+  name: string
+): Promise<IConfigValueOrigin | null> {
+  const result = await git(
+    ['config', '--show-origin', '--show-scope', '-z', name],
+    repository.path,
+    'getConfigValueWithOrigin',
+    { successExitCodes: new Set([0, 1, 128]) }
+  )
+
+  if (result.exitCode !== 0) {
+    return null
+  }
+
+  const parts = result.stdout.split('\0')
+  if (parts.length >= 3) {
+    return {
+      scope: parts[0],
+      origin: parts[1],
+      value: parts[2],
+    }
+  }
+
+  return null
+}

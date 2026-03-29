@@ -5,6 +5,7 @@ import { GitConfigUserForm } from '../lib/git-config-user-form'
 import { Row } from '../lib/row'
 import { RadioGroup } from '../lib/radio-group'
 import { assertNever } from '../../lib/fatal-error'
+import { IConfigValueOrigin } from '../../lib/git/config'
 import memoizeOne from 'memoize-one'
 
 interface IGitConfigProps {
@@ -16,6 +17,9 @@ interface IGitConfigProps {
   readonly globalName: string
   readonly globalEmail: string
   readonly isLoadingGitConfig: boolean
+
+  readonly nameOrigin?: IConfigValueOrigin | null
+  readonly emailOrigin?: IConfigValueOrigin | null
 
   readonly onGitConfigLocationChanged: (value: GitConfigLocation) => void
   readonly onNameChanged: (name: string) => void
@@ -84,8 +88,40 @@ export class GitConfig extends React.Component<IGitConfigProps> {
             onNameChanged={this.props.onNameChanged}
             isLoadingGitConfig={this.props.isLoadingGitConfig}
           />
+          {this.renderConfigOrigin()}
         </div>
       </DialogContent>
+    )
+  }
+
+  private renderConfigOrigin() {
+    const { nameOrigin, emailOrigin } = this.props
+    if (!nameOrigin && !emailOrigin) {
+      return null
+    }
+
+    return (
+      <div className="git-config-origin">
+        <p className="config-origin-label">
+          Effective identity resolved from git config:
+        </p>
+        {nameOrigin && (
+          <Row>
+            <span className="config-origin-entry">
+              user.name = &quot;{nameOrigin.value}&quot; ({nameOrigin.scope}{' '}
+              &mdash; {nameOrigin.origin.replace(/^file:/, '')})
+            </span>
+          </Row>
+        )}
+        {emailOrigin && (
+          <Row>
+            <span className="config-origin-entry">
+              user.email = &quot;{emailOrigin.value}&quot; ({emailOrigin.scope}{' '}
+              &mdash; {emailOrigin.origin.replace(/^file:/, '')})
+            </span>
+          </Row>
+        )}
+      </div>
     )
   }
 }

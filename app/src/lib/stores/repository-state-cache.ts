@@ -375,6 +375,8 @@ function getInitialRepositoryState(): IRepositoryState {
     },
     pullRequestState: null,
     commitAuthor: null,
+    commitAuthorNameOrigin: null,
+    commitAuthorEmailOrigin: null,
     commitLookup: new Map<string, Commit>(),
     localCommitSHAs: [],
     localTags: null,
