@@ -40,6 +40,8 @@ import {
 import {
   setGlobalConfigValue,
   IConfigValueOrigin,
+  getOriginFilePath,
+  isConditionalInclude,
   formatConfigScope,
   formatConfigPath,
 } from '../../lib/git/config'
@@ -73,25 +75,26 @@ import {
 } from '../../lib/feature-flag'
 import { AriaLiveContainer } from '../accessibility/aria-live-container'
 import { TooltippedContent } from '../lib/tooltipped-content'
+import { showItemInFolder } from '../main-process-proxy'
 import { HookProgress } from '../../lib/git'
 import { assertNever } from '../../lib/fatal-error'
 
 function renderScopeValue(origin: IConfigValueOrigin): JSX.Element {
-  const scope = formatConfigScope(origin)
-  if (scope.includes('includeIf')) {
+  if (isConditionalInclude(origin)) {
     return (
       <span>
         global, via <em>[includeIf]</em>
       </span>
     )
   }
-  return <span>{scope}</span>
+  return <span>{formatConfigScope(origin)}</span>
 }
 
 function formatConfigOriginTooltip(
   fieldName: string,
   origin: IConfigValueOrigin,
-  repositoryPath: string
+  repositoryPath: string,
+  onRevealFile: () => void
 ): JSX.Element {
   return (
     <div className="config-origin-tooltip">
@@ -100,7 +103,9 @@ function formatConfigOriginTooltip(
       <span className="config-origin-tooltip-label">Scope:</span>
       {renderScopeValue(origin)}
       <span className="config-origin-tooltip-label">File:</span>
-      <span>{formatConfigPath(origin, repositoryPath)}</span>
+      <LinkButton onClick={onRevealFile}>
+        {formatConfigPath(origin, repositoryPath)}
+      </LinkButton>
     </div>
   )
 }
@@ -838,10 +843,20 @@ export class CommitMessage extends React.Component<
     const { commitAuthorNameOrigin, commitAuthorEmailOrigin } = this.props
     const repoPath = this.props.repository.path
     const nameTooltip = commitAuthorNameOrigin
-      ? formatConfigOriginTooltip('Name', commitAuthorNameOrigin, repoPath)
+      ? formatConfigOriginTooltip(
+          'Name',
+          commitAuthorNameOrigin,
+          repoPath,
+          this.onRevealNameConfigFile
+        )
       : undefined
     const emailTooltip = commitAuthorEmailOrigin
-      ? formatConfigOriginTooltip('Email', commitAuthorEmailOrigin, repoPath)
+      ? formatConfigOriginTooltip(
+          'Email',
+          commitAuthorEmailOrigin,
+          repoPath,
+          this.onRevealEmailConfigFile
+        )
       : undefined
 
     return (
@@ -852,6 +867,7 @@ export class CommitMessage extends React.Component<
             className="commit-author-name"
             tooltip={nameTooltip}
             tooltipClassName="config-origin"
+            interactive={true}
           >
             {commitAuthor.name}
           </TooltippedContent>
@@ -859,12 +875,31 @@ export class CommitMessage extends React.Component<
             className="commit-author-email"
             tooltip={emailTooltip}
             tooltipClassName="config-origin"
+            interactive={true}
           >
             {commitAuthor.email}
           </TooltippedContent>
         </div>
       </div>
     )
+  }
+
+  private onRevealNameConfigFile = () => {
+    const { commitAuthorNameOrigin } = this.props
+    if (commitAuthorNameOrigin) {
+      showItemInFolder(
+        getOriginFilePath(commitAuthorNameOrigin, this.props.repository.path)
+      )
+    }
+  }
+
+  private onRevealEmailConfigFile = () => {
+    const { commitAuthorEmailOrigin } = this.props
+    if (commitAuthorEmailOrigin) {
+      showItemInFolder(
+        getOriginFilePath(commitAuthorEmailOrigin, this.props.repository.path)
+      )
+    }
   }
 
   private onUpdateUserEmail = async (email: string) => {

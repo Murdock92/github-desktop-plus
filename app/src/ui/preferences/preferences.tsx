@@ -933,9 +933,14 @@ export class Preferences extends React.Component<
         this.state.initialCommitterName ||
         this.state.initialCommitterEmail
       ) {
-        // User unchecked the box — remove identity from global config
-        await removeGlobalConfigValue('user.name')
-        await removeGlobalConfigValue('user.email')
+        // User unchecked the box — remove identity from global config.
+        // Ignore errors if values are already absent.
+        try {
+          await removeGlobalConfigValue('user.name')
+        } catch {}
+        try {
+          await removeGlobalConfigValue('user.email')
+        } catch {}
         shouldRefreshAuthor = true
       }
 

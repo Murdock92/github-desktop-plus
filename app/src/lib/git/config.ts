@@ -340,13 +340,22 @@ export function getOriginFilePath(
 }
 
 /**
- * Format a human-readable scope description for a config value origin.
- * Detects whether a global-scoped value comes from a standard location
- * (~/.gitconfig or ~/.config/git/config) vs. a conditionally included file
- * (via includeIf directive).
+ * Check whether a global-scoped config value comes from a conditionally
+ * included file (via includeIf directive) rather than a standard location.
  */
-export function formatConfigScope(origin: IConfigValueOrigin): string {
+export function isConditionalInclude(origin: IConfigValueOrigin): boolean {
+  if (origin.scope !== 'global') {
+    return false
+  }
   const filePath = getOriginFilePath(origin)
+  return (
+    !/[/\\]\.gitconfig$/i.test(filePath) &&
+    !/[/\\]\.config[/\\]git[/\\]config$/i.test(filePath)
+  )
+}
+
+/** Format a human-readable scope description for a config value origin. */
+export function formatConfigScope(origin: IConfigValueOrigin): string {
   if (origin.scope === 'local') {
     return 'local'
   } else if (origin.scope === 'system') {
@@ -354,10 +363,7 @@ export function formatConfigScope(origin: IConfigValueOrigin): string {
   } else if (origin.scope === 'worktree') {
     return 'worktree'
   } else if (origin.scope === 'global') {
-    const isStandardGlobalPath =
-      /[/\\]\.gitconfig$/i.test(filePath) ||
-      /[/\\]\.config[/\\]git[/\\]config$/i.test(filePath)
-    return isStandardGlobalPath ? 'global' : 'global, via [includeIf]'
+    return isConditionalInclude(origin) ? 'global, via [includeIf]' : 'global'
   }
   return origin.scope
 }
