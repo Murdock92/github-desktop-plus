@@ -301,10 +301,7 @@ import {
   installLFSHooks,
   isUsingLFS,
 } from '../git/lfs'
-import {
-  getConfigValueWithOrigin,
-  IConfigValueOrigin,
-} from '../git/config'
+import { getConfigValueWithOrigin, IConfigValueOrigin } from '../git/config'
 import { determineMergeability } from '../git/merge-tree'
 import { listWorktrees } from '../git/worktree'
 import { reorder } from '../git/reorder'

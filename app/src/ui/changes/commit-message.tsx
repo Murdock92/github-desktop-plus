@@ -37,7 +37,12 @@ import {
   isAttributableEmailFor,
   lookupPreferredEmail,
 } from '../../lib/email'
-import { setGlobalConfigValue, IConfigValueOrigin } from '../../lib/git/config'
+import {
+  setGlobalConfigValue,
+  IConfigValueOrigin,
+  formatConfigScope,
+  formatConfigPath,
+} from '../../lib/git/config'
 import { Popup, PopupType } from '../../models/popup'
 import { RepositorySettingsTab } from '../repository-settings/repository-settings'
 import { IdealSummaryLength } from '../../lib/wrap-rich-text-commit-message'
@@ -67,30 +72,25 @@ import {
   enableHooksEnvironment,
 } from '../../lib/feature-flag'
 import { AriaLiveContainer } from '../accessibility/aria-live-container'
+import { TooltippedContent } from '../lib/tooltipped-content'
 import { HookProgress } from '../../lib/git'
 import { assertNever } from '../../lib/fatal-error'
 
 function formatConfigOriginTooltip(
   fieldName: string,
-  configOrigin: IConfigValueOrigin
-): string {
-  const filePath = configOrigin.origin.replace(/^file:/, '')
-
-  let scopeDescription: string
-  if (configOrigin.scope === 'local') {
-    scopeDescription = 'local (.git/config)'
-  } else if (configOrigin.scope === 'system') {
-    scopeDescription = 'system'
-  } else if (configOrigin.scope === 'global') {
-    const isStandardGlobalPath =
-      /[/\\]\.gitconfig$/i.test(filePath) ||
-      /[/\\]\.config[/\\]git[/\\]config$/i.test(filePath)
-    scopeDescription = isStandardGlobalPath ? 'global' : 'global (via includeIf)'
-  } else {
-    scopeDescription = configOrigin.scope
-  }
-
-  return `${fieldName}: ${configOrigin.value}\nSource: ${scopeDescription}\n${filePath}`
+  origin: IConfigValueOrigin,
+  repositoryPath: string
+): JSX.Element {
+  return (
+    <div className="config-origin-tooltip">
+      <span className="config-origin-tooltip-label">{fieldName}:</span>
+      <span>{origin.value}</span>
+      <span className="config-origin-tooltip-label">Source:</span>
+      <span>{formatConfigScope(origin)}</span>
+      <span className="config-origin-tooltip-label">File:</span>
+      <span>{formatConfigPath(origin, repositoryPath)}</span>
+    </div>
+  )
 }
 
 const addAuthorIcon: OcticonSymbolVariant = {
@@ -824,23 +824,32 @@ export class CommitMessage extends React.Component<
     }
 
     const { commitAuthorNameOrigin, commitAuthorEmailOrigin } = this.props
+    const repoPath = this.props.repository.path
     const nameTooltip = commitAuthorNameOrigin
-      ? formatConfigOriginTooltip('Name', commitAuthorNameOrigin)
+      ? formatConfigOriginTooltip('Name', commitAuthorNameOrigin, repoPath)
       : undefined
     const emailTooltip = commitAuthorEmailOrigin
-      ? formatConfigOriginTooltip('Email', commitAuthorEmailOrigin)
+      ? formatConfigOriginTooltip('Email', commitAuthorEmailOrigin, repoPath)
       : undefined
 
     return (
       <div className="commit-author-identity">
         {avatar}
         <div className="commit-author-info">
-          <span className="commit-author-name" title={nameTooltip}>
+          <TooltippedContent
+            className="commit-author-name"
+            tooltip={nameTooltip}
+            tooltipClassName="config-origin"
+          >
             {commitAuthor.name}
-          </span>
-          <span className="commit-author-email" title={emailTooltip}>
+          </TooltippedContent>
+          <TooltippedContent
+            className="commit-author-email"
+            tooltip={emailTooltip}
+            tooltipClassName="config-origin"
+          >
             {commitAuthor.email}
-          </span>
+          </TooltippedContent>
         </div>
       </div>
     )
@@ -1791,6 +1800,8 @@ export class CommitMessage extends React.Component<
         onContextMenu={this.onContextMenu}
         ref={this.wrapperRef}
       >
+        {/* When showing author info, avatar is rendered above the summary
+            row as part of the identity block. Otherwise, inline in summary. */}
         {this.props.showCommitAuthorInfo && this.renderAvatar()}
 
         <div className={summaryClassName} ref={this.summaryGroupRef}>

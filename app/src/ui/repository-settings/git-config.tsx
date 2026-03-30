@@ -5,7 +5,11 @@ import { GitConfigUserForm } from '../lib/git-config-user-form'
 import { Row } from '../lib/row'
 import { RadioGroup } from '../lib/radio-group'
 import { assertNever } from '../../lib/fatal-error'
-import { IConfigValueOrigin } from '../../lib/git/config'
+import {
+  IConfigValueOrigin,
+  formatConfigScope,
+  formatConfigPath,
+} from '../../lib/git/config'
 import memoizeOne from 'memoize-one'
 
 interface IGitConfigProps {
@@ -20,6 +24,7 @@ interface IGitConfigProps {
 
   readonly nameOrigin?: IConfigValueOrigin | null
   readonly emailOrigin?: IConfigValueOrigin | null
+  readonly repositoryPath: string
 
   readonly onGitConfigLocationChanged: (value: GitConfigLocation) => void
   readonly onNameChanged: (name: string) => void
@@ -88,9 +93,26 @@ export class GitConfig extends React.Component<IGitConfigProps> {
             onNameChanged={this.props.onNameChanged}
             isLoadingGitConfig={this.props.isLoadingGitConfig}
           />
-          {this.renderConfigOrigin()}
         </div>
+        {this.renderConfigOrigin()}
       </DialogContent>
+    )
+  }
+
+  private renderOriginEntry(key: string, origin: IConfigValueOrigin) {
+    const repoPath = this.props.repositoryPath
+    return (
+      <div className="git-config-origin-card">
+        <div className="git-config-origin-key">
+          {key} = {origin.value}
+        </div>
+        <div className="git-config-origin-detail">
+          Scope: {formatConfigScope(origin)}
+        </div>
+        <div className="git-config-origin-detail">
+          File: {formatConfigPath(origin, repoPath)}
+        </div>
+      </div>
     )
   }
 
@@ -101,26 +123,10 @@ export class GitConfig extends React.Component<IGitConfigProps> {
     }
 
     return (
-      <div className="git-config-origin">
-        <p className="config-origin-label">
-          Effective identity resolved from git config:
-        </p>
-        {nameOrigin && (
-          <Row>
-            <span className="config-origin-entry">
-              user.name = &quot;{nameOrigin.value}&quot; ({nameOrigin.scope}{' '}
-              &mdash; {nameOrigin.origin.replace(/^file:/, '')})
-            </span>
-          </Row>
-        )}
-        {emailOrigin && (
-          <Row>
-            <span className="config-origin-entry">
-              user.email = &quot;{emailOrigin.value}&quot; ({emailOrigin.scope}{' '}
-              &mdash; {emailOrigin.origin.replace(/^file:/, '')})
-            </span>
-          </Row>
-        )}
+      <div className="git-config-origin-hint">
+        <h2>Resolved effective identity</h2>
+        {nameOrigin && this.renderOriginEntry('user.name', nameOrigin)}
+        {emailOrigin && this.renderOriginEntry('user.email', emailOrigin)}
       </div>
     )
   }

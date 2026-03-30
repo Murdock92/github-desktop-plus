@@ -301,6 +301,7 @@ export async function getConfigValueWithOrigin(
     ['config', '--show-origin', '--show-scope', '-z', name],
     repository.path,
     'getConfigValueWithOrigin',
+    // 0 = found, 1 = key not set, 128 = not a git repo or git error
     { successExitCodes: new Set([0, 1, 128]) }
   )
 
@@ -318,4 +319,44 @@ export async function getConfigValueWithOrigin(
   }
 
   return null
+}
+
+/**
+ * Format a human-readable scope description for a config value origin.
+ * Detects whether a global-scoped value comes from a standard location
+ * (~/.gitconfig or ~/.config/git/config) vs. a conditionally included file
+ * (via includeIf directive).
+ */
+export function formatConfigScope(origin: IConfigValueOrigin): string {
+  const filePath = origin.origin.replace(/^file:/, '')
+  if (origin.scope === 'local') {
+    return 'local'
+  } else if (origin.scope === 'system') {
+    return 'system'
+  } else if (origin.scope === 'global') {
+    const isStandardGlobalPath =
+      /[/\\]\.gitconfig$/i.test(filePath) ||
+      /[/\\]\.config[/\\]git[/\\]config$/i.test(filePath)
+    return isStandardGlobalPath ? 'global' : 'global (via includeIf)'
+  }
+  return origin.scope
+}
+
+/**
+ * Format the file path for a config value origin.
+ * For local scope, replaces the repository path prefix with `<repo>`.
+ */
+export function formatConfigPath(
+  origin: IConfigValueOrigin,
+  repositoryPath: string
+): string {
+  const filePath = origin.origin.replace(/^file:/, '')
+  const normalized = repositoryPath.replace(/[\\/]+$/, '')
+  if (
+    origin.scope === 'local' &&
+    filePath.toLowerCase().startsWith(normalized.toLowerCase())
+  ) {
+    return '<repo>' + filePath.slice(normalized.length)
+  }
+  return filePath
 }

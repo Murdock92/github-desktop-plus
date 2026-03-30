@@ -725,9 +725,7 @@ export class Preferences extends React.Component<
     this.setState({ showCommitLengthWarning })
   }
 
-  private onShowCommitAuthorInfoChanged = (
-    showCommitAuthorInfo: boolean
-  ) => {
+  private onShowCommitAuthorInfoChanged = (showCommitAuthorInfo: boolean) => {
     this.setState({ showCommitAuthorInfo })
   }
 

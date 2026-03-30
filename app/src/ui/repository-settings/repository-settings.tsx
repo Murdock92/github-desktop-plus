@@ -328,6 +328,7 @@ export class RepositorySettings extends React.Component<
             isLoadingGitConfig={this.state.isLoadingGitConfig}
             nameOrigin={this.state.nameOrigin}
             emailOrigin={this.state.emailOrigin}
+            repositoryPath={this.props.repository.path}
           />
         )
       }
