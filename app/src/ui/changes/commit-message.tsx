@@ -76,6 +76,18 @@ import { TooltippedContent } from '../lib/tooltipped-content'
 import { HookProgress } from '../../lib/git'
 import { assertNever } from '../../lib/fatal-error'
 
+function renderScopeValue(origin: IConfigValueOrigin): JSX.Element {
+  const scope = formatConfigScope(origin)
+  if (scope.includes('includeIf')) {
+    return (
+      <span>
+        global, via <em>[includeIf]</em>
+      </span>
+    )
+  }
+  return <span>{scope}</span>
+}
+
 function formatConfigOriginTooltip(
   fieldName: string,
   origin: IConfigValueOrigin,
@@ -85,8 +97,8 @@ function formatConfigOriginTooltip(
     <div className="config-origin-tooltip">
       <span className="config-origin-tooltip-label">{fieldName}:</span>
       <span>{origin.value}</span>
-      <span className="config-origin-tooltip-label">Source:</span>
-      <span>{formatConfigScope(origin)}</span>
+      <span className="config-origin-tooltip-label">Scope:</span>
+      {renderScopeValue(origin)}
       <span className="config-origin-tooltip-label">File:</span>
       <span>{formatConfigPath(origin, repositoryPath)}</span>
     </div>

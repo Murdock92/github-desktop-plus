@@ -322,41 +322,65 @@ export async function getConfigValueWithOrigin(
 }
 
 /**
+ * Extract the file path from a config value origin, stripping the `file:` prefix.
+ * When repositoryPath is provided, relative paths (e.g. `.git/config` for local
+ * scope) are resolved to absolute paths.
+ */
+export function getOriginFilePath(
+  origin: IConfigValueOrigin,
+  repositoryPath?: string
+): string {
+  const filePath = origin.origin.replace(/^file:/, '')
+  // Git returns relative paths for local/worktree scope (e.g. `.git/config`)
+  if (repositoryPath && !/^([a-zA-Z]:|[/\\])/.test(filePath)) {
+    const base = repositoryPath.replace(/[\\/]+$/, '')
+    return `${base}/${filePath}`
+  }
+  return filePath
+}
+
+/**
  * Format a human-readable scope description for a config value origin.
  * Detects whether a global-scoped value comes from a standard location
  * (~/.gitconfig or ~/.config/git/config) vs. a conditionally included file
  * (via includeIf directive).
  */
 export function formatConfigScope(origin: IConfigValueOrigin): string {
-  const filePath = origin.origin.replace(/^file:/, '')
+  const filePath = getOriginFilePath(origin)
   if (origin.scope === 'local') {
     return 'local'
   } else if (origin.scope === 'system') {
     return 'system'
+  } else if (origin.scope === 'worktree') {
+    return 'worktree'
   } else if (origin.scope === 'global') {
     const isStandardGlobalPath =
       /[/\\]\.gitconfig$/i.test(filePath) ||
       /[/\\]\.config[/\\]git[/\\]config$/i.test(filePath)
-    return isStandardGlobalPath ? 'global' : 'global (via includeIf)'
+    return isStandardGlobalPath ? 'global' : 'global, via [includeIf]'
   }
   return origin.scope
 }
 
 /**
  * Format the file path for a config value origin.
- * For local scope, replaces the repository path prefix with `<repo>`.
+ * For local/worktree scope, displays the path with a `<repo>` prefix.
  */
 export function formatConfigPath(
   origin: IConfigValueOrigin,
   repositoryPath: string
 ): string {
-  const filePath = origin.origin.replace(/^file:/, '')
-  const normalized = repositoryPath.replace(/[\\/]+$/, '')
-  if (
-    origin.scope === 'local' &&
-    filePath.toLowerCase().startsWith(normalized.toLowerCase())
-  ) {
-    return '<repo>' + filePath.slice(normalized.length)
+  const rawPath = origin.origin.replace(/^file:/, '')
+  if (origin.scope === 'local' || origin.scope === 'worktree') {
+    // Git returns relative paths for local scope (e.g. `.git/config`)
+    if (!/^([a-zA-Z]:|[/\\])/.test(rawPath)) {
+      return '<repo>/' + rawPath
+    }
+    // Absolute path — strip repo prefix
+    const normalized = repositoryPath.replace(/[\\/]+$/, '')
+    if (rawPath.toLowerCase().startsWith(normalized.toLowerCase())) {
+      return '<repo>' + rawPath.slice(normalized.length)
+    }
   }
-  return filePath
+  return rawPath
 }

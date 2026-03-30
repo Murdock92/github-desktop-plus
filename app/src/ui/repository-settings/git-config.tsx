@@ -4,12 +4,15 @@ import { Account } from '../../models/account'
 import { GitConfigUserForm } from '../lib/git-config-user-form'
 import { Row } from '../lib/row'
 import { RadioGroup } from '../lib/radio-group'
+import { LinkButton } from '../lib/link-button'
 import { assertNever } from '../../lib/fatal-error'
 import {
   IConfigValueOrigin,
+  getOriginFilePath,
   formatConfigScope,
   formatConfigPath,
 } from '../../lib/git/config'
+import { showItemInFolder } from '../main-process-proxy'
 import memoizeOne from 'memoize-one'
 
 interface IGitConfigProps {
@@ -99,18 +102,41 @@ export class GitConfig extends React.Component<IGitConfigProps> {
     )
   }
 
-  private renderOriginEntry(key: string, origin: IConfigValueOrigin) {
+  private onRevealNameConfigFile = () => {
+    if (this.props.nameOrigin) {
+      showItemInFolder(
+        getOriginFilePath(this.props.nameOrigin, this.props.repositoryPath)
+      )
+    }
+  }
+
+  private onRevealEmailConfigFile = () => {
+    if (this.props.emailOrigin) {
+      showItemInFolder(
+        getOriginFilePath(this.props.emailOrigin, this.props.repositoryPath)
+      )
+    }
+  }
+
+  private renderOriginEntry(
+    key: string,
+    origin: IConfigValueOrigin,
+    onReveal: () => void
+  ) {
     const repoPath = this.props.repositoryPath
     return (
-      <div className="git-config-origin-card">
-        <div className="git-config-origin-key">
+      <div className="config-origin-card">
+        <div className="config-origin-key">
           {key} = {origin.value}
         </div>
-        <div className="git-config-origin-detail">
+        <div className="config-origin-detail">
           Scope: {formatConfigScope(origin)}
         </div>
-        <div className="git-config-origin-detail">
-          File: {formatConfigPath(origin, repoPath)}
+        <div className="config-origin-detail">
+          File:{' '}
+          <LinkButton onClick={onReveal}>
+            {formatConfigPath(origin, repoPath)}
+          </LinkButton>
         </div>
       </div>
     )
@@ -123,10 +149,20 @@ export class GitConfig extends React.Component<IGitConfigProps> {
     }
 
     return (
-      <div className="git-config-origin-hint">
+      <div className="config-origin-hint">
         <h2>Resolved effective identity</h2>
-        {nameOrigin && this.renderOriginEntry('user.name', nameOrigin)}
-        {emailOrigin && this.renderOriginEntry('user.email', emailOrigin)}
+        {nameOrigin &&
+          this.renderOriginEntry(
+            'user.name',
+            nameOrigin,
+            this.onRevealNameConfigFile
+          )}
+        {emailOrigin &&
+          this.renderOriginEntry(
+            'user.email',
+            emailOrigin,
+            this.onRevealEmailConfigFile
+          )}
       </div>
     )
   }

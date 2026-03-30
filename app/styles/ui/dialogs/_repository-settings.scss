@@ -58,23 +58,22 @@
     padding-right: 0;
   }
 
-  .git-config-origin-hint {
+  .config-origin-hint {
     margin-top: var(--spacing);
-    color: var(--text-secondary-color);
 
-    .git-config-origin-card {
+    .config-origin-card {
       margin-top: var(--spacing-half);
       padding: var(--spacing-half) var(--spacing);
       background-color: var(--box-alt-background-color);
       border-radius: var(--border-radius);
 
-      .git-config-origin-key {
+      .config-origin-key {
         font-family: var(--font-family-monospace);
         font-size: var(--font-size-sm);
         font-weight: var(--font-weight-semibold);
       }
 
-      .git-config-origin-detail {
+      .config-origin-detail {
         font-size: var(--font-size-xs);
         word-break: break-all;
       }
