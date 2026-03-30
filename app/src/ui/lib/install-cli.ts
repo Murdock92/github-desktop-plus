@@ -4,10 +4,14 @@ import * as fsAdmin from 'fs-admin-forked'
 import { mkdir, readlink, symlink, unlink } from 'fs/promises'
 
 /** The path for the installed command line tool. */
-export const InstalledCLIPath = '/usr/local/bin/github'
+export const InstalledCLIPath = '/usr/local/bin/github-desktop-plus-cli'
 
 /** The path to the packaged CLI. */
-const PackagedPath = Path.resolve(__dirname, 'static', 'github-desktop-plus-cli.sh')
+const PackagedPath = Path.resolve(
+  __dirname,
+  'static',
+  'github-desktop-plus-cli.sh'
+)
 
 /** Install the command line tool on macOS. */
 export async function installCLI(): Promise<void> {
