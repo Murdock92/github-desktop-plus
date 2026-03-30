@@ -7,7 +7,7 @@ import { mkdir, readlink, symlink, unlink } from 'fs/promises'
 export const InstalledCLIPath = '/usr/local/bin/github'
 
 /** The path to the packaged CLI. */
-const PackagedPath = Path.resolve(__dirname, 'static', 'github.sh')
+const PackagedPath = Path.resolve(__dirname, 'static', 'github-desktop-plus-cli.sh')
 
 /** Install the command line tool on macOS. */
 export async function installCLI(): Promise<void> {
