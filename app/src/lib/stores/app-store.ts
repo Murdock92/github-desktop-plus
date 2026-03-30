@@ -1071,10 +1071,12 @@ export class AppStore extends TypedBaseStore<IAppState> {
   }
 
   protected emitUpdate() {
-    // If the window is hidden then we won't get an animation frame, but there
-    // may still be work we wanna do in response to the state change. So
-    // immediately emit the update.
-    if (this.windowState === 'hidden') {
+    // If the window is hidden or not focused then we won't reliably get
+    // animation frames (especially on Windows where Chromium throttles
+    // requestAnimationFrame for unfocused windows), but there may still be
+    // work we wanna do in response to the state change. So immediately emit
+    // the update.
+    if (this.windowState === 'hidden' || !this.appIsFocused) {
       this.emitUpdateNow()
       return
     }
