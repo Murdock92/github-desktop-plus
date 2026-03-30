@@ -1071,10 +1071,12 @@ export class AppStore extends TypedBaseStore<IAppState> {
   }
 
   protected emitUpdate() {
-    // If the window is hidden then we won't get an animation frame, but there
-    // may still be work we wanna do in response to the state change. So
-    // immediately emit the update.
-    if (this.windowState === 'hidden') {
+    // If the window is hidden or not focused then we won't reliably get
+    // animation frames (especially on Windows where Chromium throttles
+    // requestAnimationFrame for unfocused windows), but there may still be
+    // work we wanna do in response to the state change. So immediately emit
+    // the update.
+    if (this.windowState === 'hidden' || !this.appIsFocused) {
       this.emitUpdateNow()
       return
     }
@@ -4911,9 +4913,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
       repository,
       account
     )
-    const refreshedRepo = await this.repositoryWithRefreshedGitHubRepository(
-      repo
-    )
+    const refreshedRepo =
+      await this.repositoryWithRefreshedGitHubRepository(repo)
     await this._refreshRepository(refreshedRepo)
   }
 
@@ -5566,9 +5567,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
   private async fastForwardBranches(repository: Repository) {
     try {
-      const eligibleBranches = await getBranchesDifferingFromUpstream(
-        repository
-      )
+      const eligibleBranches =
+        await getBranchesDifferingFromUpstream(repository)
 
       await fastForwardBranches(repository, eligibleBranches)
     } catch (e) {
@@ -7296,9 +7296,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
     // association is out of date. So try again before we bail on providing an
     // authenticating user.
     if (!account) {
-      updatedRepository = await this.repositoryWithRefreshedGitHubRepository(
-        repository
-      )
+      updatedRepository =
+        await this.repositoryWithRefreshedGitHubRepository(repository)
     }
 
     return fn(updatedRepository)
