@@ -12,6 +12,7 @@ import {
 } from '../../models/status'
 import { DiffSelectionType } from '../../models/diff'
 import { CommitIdentity } from '../../models/commit-identity'
+import { IConfigValueOrigin } from '../../lib/git/config'
 import { ICommitMessage } from '../../models/commit-message'
 import {
   isRepositoryWithGitHubRepository,
@@ -160,6 +161,8 @@ interface IFilterChangesListProps {
    */
   readonly branch: string | null
   readonly commitAuthor: CommitIdentity | null
+  readonly commitAuthorNameOrigin?: IConfigValueOrigin | null
+  readonly commitAuthorEmailOrigin?: IConfigValueOrigin | null
   readonly dispatcher: Dispatcher
   readonly availableWidth: number
   readonly isCommitting: boolean
@@ -222,6 +225,8 @@ interface IFilterChangesListProps {
   readonly commitSpellcheckEnabled: boolean
 
   readonly showCommitLengthWarning: boolean
+
+  readonly showCommitAuthorInfo: boolean
 
   readonly accounts: ReadonlyArray<Account>
 
@@ -1027,6 +1032,9 @@ export class FilterChangesList extends React.Component<
         branch={this.props.branch}
         mostRecentLocalCommit={this.props.mostRecentLocalCommit}
         commitAuthor={this.props.commitAuthor}
+        commitAuthorNameOrigin={this.props.commitAuthorNameOrigin}
+        commitAuthorEmailOrigin={this.props.commitAuthorEmailOrigin}
+        showCommitAuthorInfo={this.props.showCommitAuthorInfo}
         isShowingModal={this.props.isShowingModal}
         isShowingFoldout={this.props.isShowingFoldout}
         anyFilesSelected={anyFilesSelected}
