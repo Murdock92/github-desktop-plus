@@ -87,6 +87,11 @@
     gap: var(--spacing-half);
     margin-bottom: var(--spacing-half);
 
+    &.warning {
+      border-left: 2px solid var(--input-icon-warning-color);
+      padding-left: var(--spacing-half);
+    }
+
     .commit-author-info {
       display: flex;
       flex-direction: column;
@@ -105,6 +110,10 @@
         color: var(--text-secondary-color);
         @include ellipsis;
         cursor: default;
+
+        &.warning {
+          color: var(--input-warning-text-color);
+        }
       }
     }
   }
