@@ -58,6 +58,10 @@ export class WorktreeDropdown extends React.Component<
     const { allWorktrees } = this.props.repositoryState.worktreesState
     const mainWorktree = allWorktrees.find(wt => wt.type === 'main')
 
+    if (mainWorktree) {
+      setPreferredWorktreePath(mainWorktree.path, worktree.path)
+    }
+
     const existingRepo = repositories.find(
       r => r instanceof Repository && normalizePath(r.path) === worktreePath
     )
@@ -75,10 +79,6 @@ export class WorktreeDropdown extends React.Component<
         await dispatcher.selectRepository(addedRepos[0])
         this.setState({ worktreeAddedRepo: addedRepos[0] })
       }
-    }
-
-    if (mainWorktree) {
-      setPreferredWorktreePath(mainWorktree.path, worktree.path)
     }
 
     if (previousWorktreeRepo) {
