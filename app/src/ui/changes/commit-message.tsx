@@ -94,10 +94,34 @@ function formatConfigOriginTooltip(
   fieldName: string,
   origin: IConfigValueOrigin,
   repositoryPath: string,
-  onRevealFile: () => void
+  onRevealFile: () => void,
+  warningMessage?: string,
+  warningAccountLogin?: string,
+  onOpenRepositoryRemoteSettings?: () => void
 ): JSX.Element {
   return (
     <div className="config-origin-tooltip">
+      {warningMessage && warningAccountLogin && (
+        <>
+          <span className="config-origin-tooltip-warning-icon">
+            <Octicon symbol={octicons.alert} />
+          </span>
+          <span className="config-origin-tooltip-warning">
+            {warningMessage}
+          </span>
+          <span className="config-origin-tooltip-spacer" />
+          <span className="config-origin-tooltip-hint">
+            Repository is linked to @{warningAccountLogin}
+          </span>
+          <span className="config-origin-tooltip-spacer" />
+          <span className="config-origin-tooltip-hint">
+            Change account in{' '}
+            <LinkButton onClick={onOpenRepositoryRemoteSettings}>
+              repository settings
+            </LinkButton>
+          </span>
+        </>
+      )}
       <span className="config-origin-tooltip-label">{fieldName}:</span>
       <span>{origin.value}</span>
       <span className="config-origin-tooltip-label">Scope:</span>
@@ -842,6 +866,13 @@ export class CommitMessage extends React.Component<
 
     const { commitAuthorNameOrigin, commitAuthorEmailOrigin } = this.props
     const repoPath = this.props.repository.path
+    const isMisattributed = warningType === 'misattribution'
+    const warningMessage = isMisattributed
+      ? 'Email does not match linked account'
+      : undefined
+    const warningAccountLogin = isMisattributed
+      ? repositoryAccount?.login
+      : undefined
     const nameTooltip = commitAuthorNameOrigin
       ? formatConfigOriginTooltip(
           'Name',
@@ -855,12 +886,22 @@ export class CommitMessage extends React.Component<
           'Email',
           commitAuthorEmailOrigin,
           repoPath,
-          this.onRevealEmailConfigFile
+          this.onRevealEmailConfigFile,
+          warningMessage,
+          warningAccountLogin,
+          this.onOpenRepositoryRemoteSettings
         )
       : undefined
 
+    const identityClasses = classNames('commit-author-identity', {
+      warning: isMisattributed,
+    })
+    const emailClasses = classNames('commit-author-email', {
+      warning: isMisattributed,
+    })
+
     return (
-      <div className="commit-author-identity">
+      <div className={identityClasses}>
         {avatar}
         <div className="commit-author-info">
           <TooltippedContent
@@ -872,7 +913,7 @@ export class CommitMessage extends React.Component<
             {commitAuthor.name}
           </TooltippedContent>
           <TooltippedContent
-            className="commit-author-email"
+            className={emailClasses}
             tooltip={emailTooltip}
             tooltipClassName="config-origin"
             interactive={true}
@@ -912,6 +953,14 @@ export class CommitMessage extends React.Component<
       type: PopupType.RepositorySettings,
       repository: this.props.repository,
       initialSelectedTab: RepositorySettingsTab.GitConfig,
+    })
+  }
+
+  private onOpenRepositoryRemoteSettings = () => {
+    this.props.onShowPopup({
+      type: PopupType.RepositorySettings,
+      repository: this.props.repository,
+      initialSelectedTab: RepositorySettingsTab.Remote,
     })
   }
 

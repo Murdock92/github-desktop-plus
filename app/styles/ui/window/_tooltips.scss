@@ -222,6 +222,28 @@ body > .tooltip,
         font-weight: bold;
         text-align: right;
       }
+
+      .config-origin-tooltip-warning-icon {
+        color: var(--input-icon-warning-color);
+        grid-row: span 3;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .config-origin-tooltip-warning {
+        color: var(--input-icon-warning-color);
+        font-size: var(--font-size-sm);
+      }
+
+      .config-origin-tooltip-spacer {
+        // Empty first-column cell in the warning grid rows
+      }
+
+      .config-origin-tooltip-hint {
+        font-size: var(--font-size-xs);
+        color: var(--input-icon-warning-color);
+      }
     }
   }
 
