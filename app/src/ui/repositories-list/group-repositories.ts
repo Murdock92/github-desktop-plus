@@ -123,7 +123,7 @@ export function groupRepositories(
   }
 
   return Array.from(groups)
-    .sort(([xKey], [yKey]) => compare(xKey, yKey))
+    .sort(([xKey], [yKey]) => compare(xKey.toLowerCase(), yKey.toLowerCase()))
     .map(([, { group, repos }]) => ({
       identifier: group,
       items: toSortedListItems(
