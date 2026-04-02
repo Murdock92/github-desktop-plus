@@ -34,7 +34,10 @@ import { Account } from '../../models/account'
 import { Octicon } from '../octicons'
 import * as octicons from '../octicons/octicons.generated'
 import { Integrations } from './integrations'
-import { ICustomIntegration } from '../../lib/custom-integration'
+import {
+  ICustomIntegration,
+  TargetPathArgument,
+} from '../../lib/custom-integration'
 import { getAvailableEditors } from '../../lib/editors/lookup'
 
 interface IRepositorySettingsProps {
@@ -120,7 +123,7 @@ export class RepositorySettings extends React.Component<
         props.repository.customEditorOverride?.useCustomEditor || false,
       customEditor: props.repository.customEditorOverride?.customEditor ?? {
         path: '',
-        arguments: '',
+        arguments: TargetPathArgument,
       },
       repositoryAccount: props.repositoryAccount,
     }
