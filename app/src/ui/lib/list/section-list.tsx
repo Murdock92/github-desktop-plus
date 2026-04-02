@@ -987,6 +987,10 @@ export class SectionList extends React.Component<
     }
     const gridHeight = grid.getBoundingClientRect().height
 
+    if (gridHeight === 0) {
+      return
+    }
+
     const minCellOffset =
       sectionOffset + rowOffsetInSection + rowHeight - gridHeight
     const maxCellOffset = sectionOffset + rowOffsetInSection
