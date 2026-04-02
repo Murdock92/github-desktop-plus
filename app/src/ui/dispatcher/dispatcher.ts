@@ -314,9 +314,14 @@ export class Dispatcher {
   /** Select the repository. */
   public selectRepository(
     repository: Repository | CloningRepository,
-    persistSelection: boolean = true
+    persistSelection: boolean = true,
+    followPreferredWorktree: boolean = true
   ): Promise<Repository | null> {
-    return this.appStore._selectRepository(repository, persistSelection)
+    return this.appStore._selectRepository(
+      repository,
+      persistSelection,
+      followPreferredWorktree
+    )
   }
 
   /** Change the selected section in the repository. */
