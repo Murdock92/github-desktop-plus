@@ -390,4 +390,92 @@ describe('repository list grouping', () => {
       await rm(tempRoot, { recursive: true, force: true })
     }
   })
+
+  it('does not synthesize linked worktree siblings under orphan linked worktrees', async () => {
+    const tempRoot = await mkdtemp(
+      path.join(os.tmpdir(), 'github-desktop-plus-worktree-orphan-leaf-')
+    )
+    try {
+      const mainRepoPath = path.join(tempRoot, 'repo')
+      const linkedRepoPath = path.join(tempRoot, 'repo-feature-a')
+      const secondLinkedRepoPath = path.join(tempRoot, 'repo-feature-b')
+
+      await mkdir(path.join(mainRepoPath, '.git'), { recursive: true })
+      await mkdir(path.join(mainRepoPath, '.git', 'worktrees', 'feature-a'), {
+        recursive: true,
+      })
+      await mkdir(path.join(mainRepoPath, '.git', 'worktrees', 'feature-b'), {
+        recursive: true,
+      })
+      await mkdir(linkedRepoPath, { recursive: true })
+      await writeFile(
+        path.join(linkedRepoPath, '.git'),
+        'gitdir: ../repo/.git/worktrees/feature-a\n'
+      )
+      await writeFile(
+        path.join(mainRepoPath, '.git', 'worktrees', 'feature-a', 'commondir'),
+        '../..\n'
+      )
+      await writeFile(
+        path.join(mainRepoPath, '.git', 'worktrees', 'feature-b', 'commondir'),
+        '../..\n'
+      )
+
+      const linkedRepo = new Repository(
+        linkedRepoPath,
+        20,
+        gitHubRepoFixture({ owner: 'example', name: 'repo' }),
+        false,
+        'custom alias'
+      )
+
+      cache.set(linkedRepo.id, {
+        aheadBehind: null,
+        changedFilesCount: 0,
+        branchName: 'feature/a',
+        defaultBranchName: 'main',
+        allWorktrees: [
+          {
+            path: mainRepoPath,
+            head: 'a',
+            branch: 'refs/heads/main',
+            isDetached: false,
+            type: 'main',
+            isLocked: false,
+            isPrunable: false,
+          },
+          {
+            path: linkedRepoPath,
+            head: 'b',
+            branch: 'refs/heads/feature/a',
+            isDetached: false,
+            type: 'linked',
+            isLocked: false,
+            isPrunable: false,
+          },
+          {
+            path: secondLinkedRepoPath,
+            head: 'c',
+            branch: 'refs/heads/feature/b',
+            isDetached: false,
+            type: 'linked',
+            isLocked: false,
+            isPrunable: false,
+          },
+        ],
+      })
+
+      const grouped = groupRepositories([linkedRepo], cache, [], {
+        showWorktreesInSidebar: true,
+      })
+
+      assert.equal(grouped.length, 1)
+      assert.equal(grouped[0].items.length, 1)
+      assert.equal(grouped[0].items[0].repository.path, linkedRepoPath)
+      assert.equal(grouped[0].items[0].isNestedWorktree, false)
+      assert.equal(grouped[0].items[0].title, 'custom alias')
+    } finally {
+      await rm(tempRoot, { recursive: true, force: true })
+    }
+  })
 })

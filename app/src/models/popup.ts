@@ -513,5 +513,7 @@ export type PopupDetail =
       type: PopupType.DeleteWorktree
       repository: Repository
       worktreePath: string
+      storedRepositoryToRemove?: Repository
+      isDeletingCurrentWorktree?: boolean
     }
 export type Popup = IBasePopup & PopupDetail

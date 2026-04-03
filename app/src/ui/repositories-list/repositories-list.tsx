@@ -449,6 +449,10 @@ export class RepositoriesList extends React.Component<
         : item.repository instanceof Repository
         ? item.repository
         : null
+    const storedRepositoryToRemove =
+      item.repository instanceof Repository && !item.isVirtualLinkedWorktree
+        ? item.repository
+        : undefined
 
     if (repository === null) {
       return
@@ -458,6 +462,11 @@ export class RepositoriesList extends React.Component<
       type: PopupType.DeleteWorktree,
       repository,
       worktreePath,
+      storedRepositoryToRemove,
+      isDeletingCurrentWorktree:
+        this.props.selectedRepository !== null &&
+        normalizePath(this.props.selectedRepository.path) ===
+          normalizePath(worktreePath),
     })
   }
 
@@ -490,7 +499,11 @@ export class RepositoriesList extends React.Component<
       onOpenInExternalEditor: this.props.onOpenInExternalEditor,
       askForConfirmationOnRemoveRepository:
         this.props.askForConfirmationOnRemoveRepository,
-      isLinkedWorktreeRow: item.isVirtualLinkedWorktree,
+      isLinkedWorktreeRow:
+        item.isVirtualLinkedWorktree ||
+        (item.repository instanceof Repository &&
+          item.repository.isLinkedWorktree),
+      isVirtualLinkedWorktreeRow: item.isVirtualLinkedWorktree,
       isPrunableWorktreeRow: item.isPrunableWorktree,
       externalEditorLabel: this.props.externalEditorLabel,
       onChangeRepositoryAlias: this.onChangeRepositoryAlias,

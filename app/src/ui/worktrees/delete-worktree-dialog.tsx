@@ -16,6 +16,8 @@ import {
 interface IDeleteWorktreeDialogProps {
   readonly repository: Repository
   readonly worktreePath: string
+  readonly storedRepositoryToRemove?: Repository
+  readonly isDeletingCurrentWorktree?: boolean
   readonly dispatcher: Dispatcher
   readonly onDismissed: () => void
 }
@@ -66,9 +68,13 @@ export class DeleteWorktreeDialog extends React.Component<
   private onDeleteWorktree = async () => {
     this.setState({ isDeleting: true })
 
-    const { repository, worktreePath, dispatcher } = this.props
-    const isDeletingCurrentWorktree =
-      normalizePath(repository.path) === normalizePath(worktreePath)
+    const {
+      repository,
+      worktreePath,
+      dispatcher,
+      storedRepositoryToRemove,
+      isDeletingCurrentWorktree = false,
+    } = this.props
 
     const mainPathForCleanup = await getMainWorktreePath(repository)
 
@@ -94,9 +100,13 @@ export class DeleteWorktreeDialog extends React.Component<
         const mainRepo = addedRepos[0]
         await dispatcher.selectRepository(mainRepo)
         await removeWorktree(mainRepo, worktreePath)
-        await dispatcher.removeRepository(repository, false)
       } else {
         await removeWorktree(repository, worktreePath)
+      }
+
+      if (storedRepositoryToRemove !== undefined) {
+        await dispatcher.removeRepository(storedRepositoryToRemove, false)
+      } else if (!isDeletingCurrentWorktree) {
         await dispatcher.refreshRepository(repository)
       }
     } catch (e) {

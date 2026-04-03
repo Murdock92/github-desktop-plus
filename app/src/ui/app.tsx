@@ -2763,6 +2763,8 @@ export class App extends React.Component<IAppProps, IAppState> {
             key="delete-worktree"
             repository={popup.repository}
             worktreePath={popup.worktreePath}
+            storedRepositoryToRemove={popup.storedRepositoryToRemove}
+            isDeletingCurrentWorktree={popup.isDeletingCurrentWorktree}
             dispatcher={this.props.dispatcher}
             onDismissed={onPopupDismissedFn}
           />

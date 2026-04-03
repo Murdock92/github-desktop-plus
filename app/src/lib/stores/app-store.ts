@@ -3033,7 +3033,20 @@ export class AppStore extends TypedBaseStore<IAppState> {
             r.id === selectedRepository.id
         ) || null
 
-      newSelectedRepository = r
+      if (r !== null) {
+        newSelectedRepository = r
+      } else if (
+        selectedRepository instanceof Repository &&
+        selectedRepository.id < 0
+      ) {
+        // Synthetic sidebar-only worktree rows are transient selections and
+        // won't exist in the saved repositories list. Preserve the current
+        // selection across repository store updates instead of falling back to
+        // the previously selected saved repository.
+        newSelectedRepository = selectedRepository
+      } else {
+        newSelectedRepository = null
+      }
     }
 
     if (newSelectedRepository === null && this.repositories.length > 0) {
@@ -7419,10 +7432,28 @@ export class AppStore extends TypedBaseStore<IAppState> {
           continue
         }
 
-        const addedRepo = await this.repositoriesStore.addRepository(
+        let addedRepo = await this.repositoriesStore.addRepository(
           validatedPath,
           login
         )
+
+        // When a linked worktree is added as a standalone repository and the
+        // main worktree is already known to Desktop, inherit that GitHub
+        // association up front so the saved row lands in the same top-level
+        // group after restart.
+        const mainWorktreeRepo = addedRepo.isLinkedWorktree
+          ? matchExistingRepository(repositories, addedRepo.mainWorktreePath)
+          : undefined
+
+        if (
+          mainWorktreeRepo !== undefined &&
+          isRepositoryWithGitHubRepository(mainWorktreeRepo)
+        ) {
+          addedRepo = await this.repositoriesStore.setGitHubRepository(
+            addedRepo,
+            mainWorktreeRepo.gitHubRepository
+          )
+        }
 
         // initialize the remotes for this new repository to ensure it can fetch
         // it's GitHub-related details using the GitHub API (if applicable)

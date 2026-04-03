@@ -19,6 +19,7 @@ interface IRepositoryListItemContextMenuConfig {
   externalEditorLabel: string | undefined
   askForConfirmationOnRemoveRepository: boolean
   readonly isLinkedWorktreeRow?: boolean
+  readonly isVirtualLinkedWorktreeRow?: boolean
   readonly isPrunableWorktreeRow?: boolean
   onViewInBrowser: (repository: Repositoryish) => void
   onOpenInNewWindow?: (repository: Repositoryish) => void
@@ -159,7 +160,10 @@ const buildAliasMenuItems = (
 ): ReadonlyArray<IMenuItem> => {
   const { repository } = config
 
-  if (!(repository instanceof Repository) || config.isLinkedWorktreeRow) {
+  if (
+    !(repository instanceof Repository) ||
+    config.isVirtualLinkedWorktreeRow
+  ) {
     return []
   }
 
@@ -186,7 +190,11 @@ const buildGroupNameMenuItems = (
 ): ReadonlyArray<IMenuItem> => {
   const { repository } = config
 
-  if (!(repository instanceof Repository) || config.isLinkedWorktreeRow) {
+  if (
+    !(repository instanceof Repository) ||
+    config.isLinkedWorktreeRow ||
+    config.isVirtualLinkedWorktreeRow
+  ) {
     return []
   }
 

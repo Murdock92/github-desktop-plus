@@ -66,6 +66,7 @@ describe('repository list item context menu', () => {
     const items = generateRepositoryListContextMenu(
       buildConfig({
         isLinkedWorktreeRow: true,
+        isVirtualLinkedWorktreeRow: true,
         onRemoveRepository: () => {
           removedRepository = true
         },
@@ -96,6 +97,26 @@ describe('repository list item context menu', () => {
 
     assert.equal(removedLinkedWorktree, true)
     assert.equal(removedRepository, false)
+  })
+
+  it('keeps alias and group name actions for saved linked worktree rows', () => {
+    const items = generateRepositoryListContextMenu(
+      buildConfig({
+        isLinkedWorktreeRow: true,
+        isVirtualLinkedWorktreeRow: false,
+        onRemoveLinkedWorktree: () => {},
+      })
+    )
+    const labels = items.flatMap(item => ('label' in item ? [item.label] : []))
+
+    assert(labels.includes('Change alias') || labels.includes('Change Alias'))
+    assert(labels.includes('Remove alias') || labels.includes('Remove Alias'))
+    assert(!labels.includes('Change group name'))
+    assert(!labels.includes('Change Group Name'))
+    assert(!labels.includes('Restore group name'))
+    assert(!labels.includes('Restore Group Name'))
+    assert(labels.includes('Delete…'))
+    assert(!labels.includes('Remove…'))
   })
 
   it('shows a prune action for stale worktree rows and keeps remove semantics', () => {
@@ -140,6 +161,7 @@ describe('repository list item context menu', () => {
     const items = generateRepositoryListContextMenu(
       buildConfig({
         isLinkedWorktreeRow: true,
+        isVirtualLinkedWorktreeRow: true,
         isPrunableWorktreeRow: true,
         onPruneStaleWorktrees: () => {},
       })

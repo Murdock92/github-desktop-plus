@@ -23,6 +23,14 @@ export const getDisplayTitle = (repository: Repositoryish) =>
     ? repository.alias
     : repository.name
 
+const getLinkedWorktreeDisplayTitle = (
+  repository: Repositoryish,
+  worktreePath?: string
+) =>
+  repository instanceof Repository && repository.alias != null
+    ? repository.alias
+    : Path.basename(worktreePath ?? repository.path)
+
 export const getRepositoryListTitle = (
   repository: Repositoryish,
   showWorktreesInSidebar: boolean
@@ -30,7 +38,7 @@ export const getRepositoryListTitle = (
   showWorktreesInSidebar &&
   repository instanceof Repository &&
   repository.isLinkedWorktree
-    ? Path.basename(repository.path)
+    ? getLinkedWorktreeDisplayTitle(repository)
     : getDisplayTitle(repository)
 
 const getVirtualRepositoryId = (worktreePath: string) => {
@@ -138,7 +146,7 @@ export function toSortedRepositoryListItems({
         : null
     const title =
       isLinkedWorktree || isVirtualLinkedWorktree
-        ? Path.basename(worktreePath)
+        ? getLinkedWorktreeDisplayTitle(repository, worktreePath)
         : getDisplayTitle(repository)
     const defaultBranchName =
       repoState?.defaultBranchName ??
@@ -313,12 +321,6 @@ export function toSortedRepositoryListItems({
 
   for (const repository of orphanLinkedRepos) {
     items.push(toListItem(repository, false))
-    appendVirtualWorktreeItems(
-      items,
-      repository,
-      repository,
-      emittedVirtualPaths
-    )
   }
 
   return items
