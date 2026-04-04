@@ -1689,6 +1689,7 @@ export class App extends React.Component<IAppProps, IAppState> {
             titleBarStyle={this.state.titleBarStyle}
             showRecentRepositories={this.state.showRecentRepositories}
             showWorktrees={this.state.showWorktrees}
+            showWorktreesInSidebar={this.state.showWorktreesInSidebar}
             showCompareTab={this.state.showCompareTab}
             repositoryIndicatorsEnabled={this.state.repositoryIndicatorsEnabled}
             hideWindowOnQuit={this.state.hideWindowOnQuit}
@@ -2762,6 +2763,8 @@ export class App extends React.Component<IAppProps, IAppState> {
             key="delete-worktree"
             repository={popup.repository}
             worktreePath={popup.worktreePath}
+            storedRepositoryToRemove={popup.storedRepositoryToRemove}
+            isDeletingCurrentWorktree={popup.isDeletingCurrentWorktree}
             dispatcher={this.props.dispatcher}
             onDismissed={onPopupDismissedFn}
           />
@@ -3071,9 +3074,14 @@ export class App extends React.Component<IAppProps, IAppState> {
 
     const { useCustomShell, selectedShell } = this.state
     const filterText = this.state.repositoryFilterText
-    const repositories = this.state.repositories.filter(
-      r => !(r instanceof Repository && r.isLinkedWorktree)
-    )
+    const repositories = this.state.showWorktreesInSidebar
+      ? [...this.state.repositories]
+      : this.state.repositories.filter(
+          r => !(r instanceof Repository && r.isLinkedWorktree)
+        )
+    const localRepositoryStateLookup = this.state.showWorktreesInSidebar
+      ? new Map(this.state.localRepositoryStateLookup)
+      : this.state.localRepositoryStateLookup
     return (
       <RepositoriesList
         filterText={filterText}
@@ -3083,7 +3091,7 @@ export class App extends React.Component<IAppProps, IAppState> {
         repositories={repositories}
         recentRepositories={this.state.recentRepositories}
         showRecentRepositories={this.state.showRecentRepositories}
-        localRepositoryStateLookup={this.state.localRepositoryStateLookup}
+        localRepositoryStateLookup={localRepositoryStateLookup}
         askForConfirmationOnRemoveRepository={
           this.state.askForConfirmationOnRepositoryRemoval
         }
@@ -3097,6 +3105,7 @@ export class App extends React.Component<IAppProps, IAppState> {
         shellLabel={useCustomShell ? undefined : selectedShell}
         dispatcher={this.props.dispatcher}
         showBranchNameInRepoList={this.state.showBranchNameInRepoList}
+        showWorktreesInSidebar={this.state.showWorktreesInSidebar}
       />
     )
   }
@@ -3820,7 +3829,7 @@ export class App extends React.Component<IAppProps, IAppState> {
   }
 
   private onSelectionChanged = (repository: Repository | CloningRepository) => {
-    this.props.dispatcher.selectRepository(repository)
+    this.props.dispatcher.selectRepository(repository, true, false)
     this.props.dispatcher.closeFoldout(FoldoutType.Repository)
   }
 

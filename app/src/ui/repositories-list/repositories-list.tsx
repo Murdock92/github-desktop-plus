@@ -27,6 +27,11 @@ import { SectionFilterList } from '../lib/section-filter-list'
 import { assertNever } from '../../lib/fatal-error'
 import { IAheadBehind } from '../../models/branch'
 import { ShowBranchNameInRepoListSetting } from '../../models/show-branch-name-in-repo-list'
+import { normalizePath } from '../../lib/helpers/path'
+import { ClickSource } from '../lib/list'
+import { getRepositoryType } from '../../lib/git/rev-parse'
+import { FoldoutType } from '../../lib/app-state'
+import { pruneWorktrees } from '../../lib/git/worktree'
 
 const BlankSlateImage = encodePathAsUrl(__dirname, 'static/empty-no-repo.svg')
 
@@ -82,6 +87,7 @@ interface IRepositoriesListProps {
 
   /** Controls when to show the branch name next to each repository */
   readonly showBranchNameInRepoList: ShowBranchNameInRepoListSetting
+  readonly showWorktreesInSidebar: boolean
 }
 
 interface IRepositoriesListState {
@@ -103,9 +109,14 @@ function findMatchingListItem(
   selectedRepository: Repositoryish | null
 ) {
   if (selectedRepository !== null) {
+    const selectedPath = normalizePath(selectedRepository.path)
     for (const group of groups) {
       for (const item of group.items) {
-        if (item.repository.id === selectedRepository.id) {
+        if (
+          item.repository.id === selectedRepository.id ||
+          (item.worktreePath !== null &&
+            normalizePath(item.worktreePath) === selectedPath)
+        ) {
           return item
         }
       }
@@ -113,6 +124,36 @@ function findMatchingListItem(
   }
 
   return null
+}
+
+function isPullableRepository(
+  repository: Repositoryish,
+  repositories: ReadonlyArray<Repositoryish>
+): repository is Repository {
+  if (!(repository instanceof Repository)) {
+    return false
+  }
+
+  if (!repository.isLinkedWorktree) {
+    return true
+  }
+
+  const mainWorktreePath = normalizePath(repository.mainWorktreePath)
+  const candidatesWithSameMain = repositories.filter(
+    (candidate): candidate is Repository =>
+      candidate instanceof Repository &&
+      normalizePath(candidate.mainWorktreePath) === mainWorktreePath
+  )
+
+  if (candidatesWithSameMain.length === 0) {
+    return false
+  }
+
+  const preferred =
+    candidatesWithSameMain.find(candidate => !candidate.isLinkedWorktree) ??
+    candidatesWithSameMain[0]
+
+  return preferred.id === repository.id
 }
 
 /** The list of user-added repositories. */
@@ -130,14 +171,16 @@ export class RepositoriesList extends React.Component<
     (
       repositories: ReadonlyArray<Repositoryish> | null,
       localRepositoryStateLookup: ReadonlyMap<number, ILocalRepositoryState>,
-      recentRepositories: ReadonlyArray<number>
+      recentRepositories: ReadonlyArray<number>,
+      showWorktreesInSidebar: boolean
     ) =>
       repositories === null
         ? []
         : groupRepositories(
             repositories,
             localRepositoryStateLookup,
-            recentRepositories
+            recentRepositories,
+            { showWorktreesInSidebar }
           )
   )
 
@@ -183,13 +226,17 @@ export class RepositoriesList extends React.Component<
     const repository = item.repository
     return (
       <RepositoryListItem
-        key={repository.id}
+        key={item.id}
+        title={item.title}
         repository={repository}
         needsDisambiguation={item.needsDisambiguation}
         matches={matches}
         aheadBehind={item.aheadBehind}
         changedFilesCount={item.changedFilesCount}
         branchName={this.shouldShowBranchName(item) ? item.branchName : null}
+        isNestedWorktree={item.isNestedWorktree}
+        mainWorktreeName={item.mainWorktreeName}
+        isPrunableWorktree={item.isPrunableWorktree}
       />
     )
   }
@@ -227,6 +274,9 @@ export class RepositoriesList extends React.Component<
     const hasChanges = changedFilesCount > 0
     const uncommittedChangesTooltip = hasChanges
       ? `There are uncommitted changes in this repository.`
+      : null
+    const prunableWorktreeTooltip = item.isPrunableWorktree
+      ? 'This worktree entry is stale and should be pruned.'
       : null
 
     const ahead = aheadBehind?.ahead ?? 0
@@ -270,6 +320,16 @@ export class RepositoriesList extends React.Component<
             {uncommittedChangesTooltip}
           </div>
         )}
+        {prunableWorktreeTooltip && (
+          <div>
+            <div className="label">
+              <span className="prunable-indicator-wrapper">
+                <Octicon symbol={octicons.alert} />
+              </span>
+            </div>
+            {prunableWorktreeTooltip}
+          </div>
+        )}
       </div>
     )
   }
@@ -310,7 +370,31 @@ export class RepositoriesList extends React.Component<
     )
   }
 
-  private onItemClick = (item: IRepositoryListItem) => {
+  private onItemClick = (item: IRepositoryListItem, source: ClickSource) => {
+    if (
+      source.kind === 'mouseclick' &&
+      (source.event.button === 2 ||
+        (__DARWIN__ && source.event.button === 0 && source.event.ctrlKey))
+    ) {
+      return
+    }
+
+    if (item.isPrunableWorktree) {
+      void this.props.dispatcher.postError(
+        new Error(
+          'This worktree entry is stale. Use the context menu to prune stale worktrees.'
+        )
+      )
+      return
+    }
+
+    if (item.isVirtualLinkedWorktree && item.worktreePath !== null) {
+      void this.onVirtualWorktreeClick(item).catch(error =>
+        this.props.dispatcher.postError(error)
+      )
+      return
+    }
+
     const hasIndicator =
       item.changedFilesCount > 0 ||
       (item.aheadBehind !== null
@@ -320,20 +404,107 @@ export class RepositoriesList extends React.Component<
     this.props.onSelectionChanged(item.repository)
   }
 
+  private onVirtualWorktreeClick = async (item: IRepositoryListItem) => {
+    if (
+      item.worktreePath === null ||
+      item.sourceRepository === null ||
+      !(item.repository instanceof Repository)
+    ) {
+      return
+    }
+
+    const { worktreePath } = item
+    const existingRepo = this.props.repositories.find(
+      r =>
+        r instanceof Repository &&
+        normalizePath(r.path) === normalizePath(worktreePath)
+    )
+
+    if (existingRepo instanceof Repository) {
+      await this.props.dispatcher.selectRepository(existingRepo)
+      await this.props.dispatcher.closeFoldout(FoldoutType.Repository)
+      return
+    }
+
+    const repositoryType = await getRepositoryType(worktreePath)
+    if (repositoryType.kind !== 'regular') {
+      throw new Error(`${worktreePath} isn't a Git repository.`)
+    }
+
+    await this.props.dispatcher.selectRepository(item.repository, false)
+    await this.props.dispatcher.closeFoldout(FoldoutType.Repository)
+  }
+
+  private onRemoveLinkedWorktree = (item: IRepositoryListItem) => {
+    const worktreePath =
+      item.worktreePath ??
+      (item.repository instanceof Repository ? item.repository.path : null)
+    if (worktreePath === null) {
+      return
+    }
+
+    const repository =
+      item.isVirtualLinkedWorktree && item.sourceRepository !== null
+        ? item.sourceRepository
+        : item.repository instanceof Repository
+        ? item.repository
+        : null
+    const storedRepositoryToRemove =
+      item.repository instanceof Repository && !item.isVirtualLinkedWorktree
+        ? item.repository
+        : undefined
+
+    if (repository === null) {
+      return
+    }
+
+    this.props.dispatcher.showPopup({
+      type: PopupType.DeleteWorktree,
+      repository,
+      worktreePath,
+      storedRepositoryToRemove,
+      isDeletingCurrentWorktree:
+        this.props.selectedRepository !== null &&
+        normalizePath(this.props.selectedRepository.path) ===
+          normalizePath(worktreePath),
+    })
+  }
+
+  private onPruneStaleWorktrees = async (item: IRepositoryListItem) => {
+    const repository =
+      item.sourceRepository ??
+      (item.repository instanceof Repository ? item.repository : null)
+
+    if (repository === null) {
+      return
+    }
+
+    await pruneWorktrees(repository)
+    await this.props.dispatcher.refreshRepository(repository)
+  }
+
   private onItemContextMenu = (
     item: IRepositoryListItem,
     event: React.MouseEvent<HTMLDivElement>
   ) => {
     event.preventDefault()
+    event.stopPropagation()
 
     const items = generateRepositoryListContextMenu({
       onRemoveRepository: this.props.onRemoveRepository,
+      onRemoveLinkedWorktree: () => this.onRemoveLinkedWorktree(item),
       onShowRepository: this.props.onShowRepository,
       onOpenInNewWindow: this.props.onOpenInNewWindow,
       onOpenInShell: this.props.onOpenInShell,
       onOpenInExternalEditor: this.props.onOpenInExternalEditor,
       askForConfirmationOnRemoveRepository:
         this.props.askForConfirmationOnRemoveRepository,
+      isLinkedWorktreeRow:
+        item.isVirtualLinkedWorktree ||
+        (item.repository instanceof Repository &&
+          item.repository.isLinkedWorktree),
+      isVirtualLinkedWorktreeRow: item.isVirtualLinkedWorktree,
+      isPrunableWorktreeRow: item.isPrunableWorktree,
       externalEditorLabel: this.props.externalEditorLabel,
       onChangeRepositoryAlias: this.onChangeRepositoryAlias,
       onRemoveRepositoryAlias: this.onRemoveRepositoryAlias,
@@ -343,6 +514,11 @@ export class RepositoriesList extends React.Component<
       repository: item.repository,
       shellLabel: this.props.shellLabel,
       onCopyRepoPath: path => this.props.dispatcher.copyPathToClipboard(path),
+      onPruneStaleWorktrees: () => {
+        void this.onPruneStaleWorktrees(item).catch(error =>
+          this.props.dispatcher.postError(error)
+        )
+      },
     })
 
     showContextualMenu(items)
@@ -362,7 +538,8 @@ export class RepositoriesList extends React.Component<
     let groups = this.getRepositoryGroups(
       this.props.repositories,
       this.props.localRepositoryStateLookup,
-      this.props.recentRepositories
+      this.props.recentRepositories,
+      this.props.showWorktreesInSidebar
     )
 
     if (!this.props.showRecentRepositories) {
@@ -506,14 +683,20 @@ export class RepositoriesList extends React.Component<
   private onPullRepositoriesButtonClick = async () => {
     this.setState({ pullingRepositories: true })
     try {
+      const repositoriesToPull = this.props.repositories.filter(repository =>
+        isPullableRepository(repository, this.props.repositories)
+      )
+
       await Promise.all(
-        this.props.repositories
-          .filter(r => r instanceof Repository)
-          .map(r =>
-            this.props.dispatcher.pull(r).catch(e => {
-              throw Error(`Error pulling '${r.name}' (${r.path}):\n${e}`, e)
-            })
-          )
+        repositoriesToPull.map(repository =>
+          this.props.dispatcher.pull(repository).catch(e => {
+            const message = e instanceof Error ? e.message : String(e)
+            throw new Error(
+              `Error pulling '${repository.name}' (${repository.path}): ${message}`,
+              { cause: e }
+            )
+          })
+        )
       )
     } catch (e) {
       this.props.dispatcher.postError(e)

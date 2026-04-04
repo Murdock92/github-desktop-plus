@@ -29,6 +29,8 @@ interface IAppearanceProps {
   readonly onShowRecentRepositoriesChanged: (show: boolean) => void
   readonly showWorktrees: boolean
   readonly onShowWorktreesChanged: (show: boolean) => void
+  readonly showWorktreesInSidebar: boolean
+  readonly onShowWorktreesInSidebarChanged: (show: boolean) => void
   readonly showCompareTab: boolean
   readonly onShowCompareTabChanged: (show: boolean) => void
   readonly showBranchNameInRepoList: ShowBranchNameInRepoListSetting
@@ -47,6 +49,7 @@ interface IAppearanceState {
   readonly titleBarStyle: TitleBarStyle
   readonly showRecentRepositories: boolean
   readonly showWorktrees: boolean
+  readonly showWorktreesInSidebar: boolean
   readonly showCompareTab: boolean
 }
 
@@ -76,6 +79,7 @@ export class Appearance extends React.Component<
       titleBarStyle: props.titleBarStyle,
       showRecentRepositories: props.showRecentRepositories,
       showWorktrees: props.showWorktrees,
+      showWorktreesInSidebar: props.showWorktreesInSidebar,
       showCompareTab: props.showCompareTab,
     }
 
@@ -85,7 +89,13 @@ export class Appearance extends React.Component<
   }
 
   public async componentDidUpdate(prevProps: IAppearanceProps) {
-    if (prevProps === this.props) {
+    if (
+      prevProps.selectedTheme === this.props.selectedTheme &&
+      prevProps.selectedTabSize === this.props.selectedTabSize &&
+      prevProps.showWorktrees === this.props.showWorktrees &&
+      prevProps.showWorktreesInSidebar === this.props.showWorktreesInSidebar &&
+      prevProps.showCompareTab === this.props.showCompareTab
+    ) {
       return
     }
 
@@ -99,7 +109,13 @@ export class Appearance extends React.Component<
 
     const selectedTabSize = this.props.selectedTabSize
 
-    this.setState({ selectedTheme, selectedTabSize })
+    this.setState({
+      selectedTheme,
+      selectedTabSize,
+      showWorktrees: this.props.showWorktrees,
+      showWorktreesInSidebar: this.props.showWorktreesInSidebar,
+      showCompareTab: this.props.showCompareTab,
+    })
   }
 
   private initializeSelectedTheme = async () => {
@@ -124,7 +140,10 @@ export class Appearance extends React.Component<
     event: React.FormEvent<HTMLInputElement>
   ) => {
     const show = event.currentTarget.checked
-    this.setState({ showWorktrees: show })
+    this.setState({
+      showWorktrees: show,
+      showWorktreesInSidebar: show ? this.state.showWorktreesInSidebar : false,
+    })
     this.props.onShowWorktreesChanged(show)
   }
 
@@ -134,6 +153,14 @@ export class Appearance extends React.Component<
     const show = event.currentTarget.checked
     this.setState({ showCompareTab: show })
     this.props.onShowCompareTabChanged(show)
+  }
+
+  private onShowWorktreesInSidebarChanged = (
+    event: React.FormEvent<HTMLInputElement>
+  ) => {
+    const show = event.currentTarget.checked
+    this.setState({ showWorktreesInSidebar: show })
+    this.props.onShowWorktreesInSidebarChanged(show)
   }
 
   private onSelectedTabSizeChanged = (
@@ -363,6 +390,17 @@ export class Appearance extends React.Component<
             }
             onChange={this.onShowWorktreesChanged}
           />
+          {this.state.showWorktrees && (
+            <Checkbox
+              label="Show worktrees in repository sidebar"
+              value={
+                this.state.showWorktreesInSidebar
+                  ? CheckboxValue.On
+                  : CheckboxValue.Off
+              }
+              onChange={this.onShowWorktreesInSidebarChanged}
+            />
+          )}
         </div>
         <div className="advanced-section">
           <h2>{'Commit list'}</h2>
