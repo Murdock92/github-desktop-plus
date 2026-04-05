@@ -5663,10 +5663,37 @@ export class AppStore extends TypedBaseStore<IAppState> {
     }
   }
 
+  private async withRepoInfoInError(
+    errorMessagePrefix: string,
+    repository: Repository,
+    fn: () => Promise<void>
+  ): Promise<void> {
+    try {
+      await fn()
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      throw new Error(
+        `${errorMessagePrefix} '${repository.name}' (${repository.path}): ${message}`,
+        { cause: error }
+      )
+    }
+  }
+
   public async _pull(repository: Repository): Promise<void> {
     return this.withRefreshedGitHubRepository(repository, repository => {
       return this.performPull(repository)
     })
+  }
+
+  public async _pullAllRepositories(): Promise<void> {
+    const repositories = await this.repositoriesStore.getAll()
+    await Promise.all(
+      repositories.map(repository =>
+        this.withRepoInfoInError('Error pulling', repository, () =>
+          this._pull(repository)
+        )
+      )
+    )
   }
 
   /** This shouldn't be called directly. See `Dispatcher`. */

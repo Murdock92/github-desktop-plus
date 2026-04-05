@@ -113,6 +113,9 @@ export class Repository {
   }
 
   public get path(): string {
+    // NOTE: This is not actually the main worktree. We preserve the name "mainWorkTree" to
+    // minimize merge conflicts when pulling changes from the official repo (desktop/desktop).
+    // If isLinkedWorktree = true, this is actually the path to the linked worktree
     return this.mainWorkTree.path
   }
 

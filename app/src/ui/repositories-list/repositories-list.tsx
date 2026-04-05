@@ -126,36 +126,6 @@ function findMatchingListItem(
   return null
 }
 
-function isPullableRepository(
-  repository: Repositoryish,
-  repositories: ReadonlyArray<Repositoryish>
-): repository is Repository {
-  if (!(repository instanceof Repository)) {
-    return false
-  }
-
-  if (!repository.isLinkedWorktree) {
-    return true
-  }
-
-  const mainWorktreePath = normalizePath(repository.mainWorktreePath)
-  const candidatesWithSameMain = repositories.filter(
-    (candidate): candidate is Repository =>
-      candidate instanceof Repository &&
-      normalizePath(candidate.mainWorktreePath) === mainWorktreePath
-  )
-
-  if (candidatesWithSameMain.length === 0) {
-    return false
-  }
-
-  const preferred =
-    candidatesWithSameMain.find(candidate => !candidate.isLinkedWorktree) ??
-    candidatesWithSameMain[0]
-
-  return preferred.id === repository.id
-}
-
 /** The list of user-added repositories. */
 export class RepositoriesList extends React.Component<
   IRepositoriesListProps,
@@ -682,27 +652,8 @@ export class RepositoriesList extends React.Component<
 
   private onPullRepositoriesButtonClick = async () => {
     this.setState({ pullingRepositories: true })
-    try {
-      const repositoriesToPull = this.props.repositories.filter(repository =>
-        isPullableRepository(repository, this.props.repositories)
-      )
-
-      await Promise.all(
-        repositoriesToPull.map(repository =>
-          this.props.dispatcher.pull(repository).catch(e => {
-            const message = e instanceof Error ? e.message : String(e)
-            throw new Error(
-              `Error pulling '${repository.name}' (${repository.path}): ${message}`,
-              { cause: e }
-            )
-          })
-        )
-      )
-    } catch (e) {
-      this.props.dispatcher.postError(e)
-    } finally {
-      this.setState({ pullingRepositories: false })
-    }
+    await this.props.dispatcher.pullAllRepositories()
+    this.setState({ pullingRepositories: false })
   }
 
   private onCloneRepository = () => {

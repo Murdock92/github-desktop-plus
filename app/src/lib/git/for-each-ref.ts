@@ -91,6 +91,7 @@ export async function getBranchesDifferingFromUpstream(
     upstream: '%(upstream)',
     symref: '%(symref)',
     head: '%(HEAD)',
+    worktreePath: '%(worktreepath)',
   })
 
   const prefixes = ['refs/heads', 'refs/remotes']
@@ -115,6 +116,10 @@ export async function getBranchesDifferingFromUpstream(
   for (const ref of parse(result.stdout)) {
     if (ref.symref.length > 0 || ref.head === '*') {
       // Exclude symbolic refs and the current branch
+      continue
+    }
+    if (ref.worktreePath.length > 0 && ref.worktreePath !== repository.path) {
+      // Exclude branches checked out in other worktrees, since they can't be fast-forwarded from here
       continue
     }
 

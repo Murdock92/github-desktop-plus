@@ -780,6 +780,14 @@ export class Dispatcher {
     return this.appStore._pull(repository)
   }
 
+  public async pullAllRepositories(): Promise<void> {
+    try {
+      await this.appStore._pullAllRepositories()
+    } catch (error) {
+      this.postError(error)
+    }
+  }
+
   /** Fetch a specific refspec for the repository. */
   public fetchRefspec(
     repository: Repository,
