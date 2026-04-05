@@ -428,6 +428,14 @@ export class RepositoriesList extends React.Component<
       return
     }
 
+    if (item.changedFilesCount > 0) {
+      this.props.dispatcher.showPopup({
+        type: PopupType.CantDeleteWorktreeUncommittedChanges,
+        worktreePath,
+      })
+      return
+    }
+
     this.props.dispatcher.showPopup({
       type: PopupType.DeleteWorktree,
       repository,

@@ -5269,6 +5269,18 @@ export class AppStore extends TypedBaseStore<IAppState> {
         toCheckout ?? this.getBranchToCheckoutAfterDelete(branch, repository)
 
       if (branchToCheckout !== null) {
+        const { changesState } = this.repositoryStateCache.get(repository)
+        const hasChanges = changesState.workingDirectory.files.length > 0
+
+        if (hasChanges) {
+          this._showPopup({
+            type: PopupType.CantDeleteCurrentBranchUncommittedChanges,
+            repository,
+            branchToDelete: branch,
+          })
+          return
+        }
+
         const worktrees = await listWorktrees(repository)
         const branchRef = `refs/heads/${branchToCheckout.name}`
         const inUseInAnotherWorktree = worktrees.some(

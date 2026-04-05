@@ -9,6 +9,7 @@ import {
   IConstrainedValue,
   IRepositoryState,
 } from '../../lib/app-state'
+import { ILocalRepositoryState } from '../../models/repository'
 import { WorktreeEntry } from '../../models/worktree'
 import { WorktreeList } from '../worktrees/worktree-list'
 import { CloningRepository } from '../../models/cloning-repository'
@@ -29,6 +30,10 @@ interface IWorktreeDropdownProps {
   readonly enableFocusTrap: boolean
   readonly repositories: ReadonlyArray<Repository | CloningRepository>
   readonly worktreeDropdownWidth: IConstrainedValue
+  readonly localRepositoryStateLookup: ReadonlyMap<
+    number,
+    ILocalRepositoryState
+  >
 }
 
 interface IWorktreeDropdownState {
@@ -119,6 +124,26 @@ export class WorktreeDropdown extends React.Component<
 
   private onRemoveWorktree = (path: string) => {
     this.props.dispatcher.closeFoldout(FoldoutType.Worktree)
+
+    const { repositories, localRepositoryStateLookup } = this.props
+    const normalizedPath = normalizePath(path)
+    const matchingRepo = repositories.find(
+      r => r instanceof Repository && normalizePath(r.path) === normalizedPath
+    )
+    const repoState =
+      matchingRepo instanceof Repository
+        ? localRepositoryStateLookup.get(matchingRepo.id)
+        : undefined
+    const changedFilesCount = repoState?.changedFilesCount ?? 0
+
+    if (changedFilesCount > 0) {
+      this.props.dispatcher.showPopup({
+        type: PopupType.CantDeleteWorktreeUncommittedChanges,
+        worktreePath: path,
+      })
+      return
+    }
+
     this.props.dispatcher.showPopup({
       type: PopupType.DeleteWorktree,
       repository: this.props.repository,

@@ -44,6 +44,7 @@ import { RepositoryView } from './repository'
 import { RenameBranch } from './rename-branch'
 import {
   CantDeleteCurrentBranch,
+  CantDeleteCurrentBranchUncommittedChanges,
   DeleteBranch,
   DeleteRemoteBranch,
 } from './delete-branch'
@@ -211,6 +212,7 @@ import { CommitProgress } from './commit-progress/commit-progress'
 import { AddWorktreeDialog } from './worktrees/add-worktree-dialog'
 import { RenameWorktreeDialog } from './worktrees/rename-worktree-dialog'
 import { DeleteWorktreeDialog } from './worktrees/delete-worktree-dialog'
+import { CantDeleteWorktreeUncommittedChanges } from './worktrees/cant-delete-worktree-uncommitted-changes-dialog'
 
 const MinuteInMilliseconds = 1000 * 60
 const HourInMilliseconds = MinuteInMilliseconds * 60
@@ -1579,6 +1581,14 @@ export class App extends React.Component<IAppProps, IAppState> {
             onDismissed={onPopupDismissedFn}
           />
         )
+      case PopupType.CantDeleteCurrentBranchUncommittedChanges:
+        return (
+          <CantDeleteCurrentBranchUncommittedChanges
+            key="cant-delete-current-branch-uncommitted-changes"
+            branchToDelete={popup.branchToDelete}
+            onDismissed={onPopupDismissedFn}
+          />
+        )
       case PopupType.DeleteBranch:
         return (
           <DeleteBranch
@@ -2770,6 +2780,14 @@ export class App extends React.Component<IAppProps, IAppState> {
           />
         )
       }
+      case PopupType.CantDeleteWorktreeUncommittedChanges:
+        return (
+          <CantDeleteWorktreeUncommittedChanges
+            key="cant-delete-worktree-uncommitted-changes"
+            worktreePath={popup.worktreePath}
+            onDismissed={onPopupDismissedFn}
+          />
+        )
       default:
         return assertNever(popup, `Unknown popup type: ${popup}`)
     }
@@ -3580,6 +3598,7 @@ export class App extends React.Component<IAppProps, IAppState> {
         enableFocusTrap={enableFocusTrap}
         repositories={this.state.repositories}
         worktreeDropdownWidth={this.state.worktreeDropdownWidth}
+        localRepositoryStateLookup={this.state.localRepositoryStateLookup}
       />
     )
   }
