@@ -237,13 +237,17 @@ flatpak install flathub io.github.pol_rivero.github-desktop-plus
 
 </details>
 
-### AppImage (any distro)
+### AppImage (any distro, not recommended)
 
 <details>
 <summary>Click to expand</summary>
 <br>
 
-**NOTE:** I recommend using your distribution's native package manager (or Flatpak) instead of the AppImage.
+**IMPORTANT:** I strongly recommend using your distribution's native package (APT, RPM and AUR packages above) or Flatpak instead of the AppImage, as it requires some manual setup for the sign-in feature to work.  
+If you need to use the AppImage, follow these steps:
+1. (Only if downloaded without "AM"/"AppMan") Manually [create a `.desktop` entry](https://wiki.archlinux.org/title/Desktop_entries). If you used "AM"/"AppMan" to download, this step is not necessary since it creates the .desktop file for you.
+2. [Create the `application/x-github-desktop-auth` MIME type](https://wiki.archlinux.org/title/XDG_MIME_Applications#New_MIME_types).
+3. [Edit the MIME associations list](https://wiki.archlinux.org/title/XDG_MIME_Applications#mimeapps.list) to link the two.
 
 #### Using ["AM"/"AppMan"](https://github.com/ivan-hc/AM)
 

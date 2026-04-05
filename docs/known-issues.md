@@ -245,6 +245,8 @@ If you see an error that says "Not enough resources are available to process thi
 
 Related issue: [#54](https://github.com/pol-rivero/github-desktop-plus/issues/54)
 
+First of all, make sure you are not using the AppImage package, as it requires some manual setup for the sign-in feature to work. Instead, I strongly recommend using your distribution's native package manager (APT, RPM and AUR packages above) or Flatpak.
+
 After following the instructions in your web browser to authorize GitHub Desktop, the callback is not sent to the app and it remains stuck on the "Continue with browser" screen.
 
 The most likely cause is that the URI scheme used by GitHub Desktop Plus for authorization (`x-github-desktop-auth://`) is not linked to the correct program. You can verify if this is the case by fully closing GitHub Desktop Plus (`Ctrl+Q`) and running the following command in your terminal:
