@@ -101,15 +101,9 @@ export async function addWorktree(
 
 export async function removeWorktree(
   repository: Repository,
-  path: string,
-  force: boolean = false
+  path: string
 ): Promise<void> {
-  const args = ['worktree', 'remove']
-  if (force) {
-    args.push('--force')
-  }
-  args.push(path)
-
+  const args = ['worktree', 'remove', '--force', path]
   await git(args, repository.path, 'removeWorktree')
 }
 
