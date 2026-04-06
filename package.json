@@ -92,7 +92,6 @@
     "jsdom": "^26.0.0",
     "legal-eagle": "0.16.0",
     "mini-css-extract-plugin": "^2.9.1",
-    "parallel-webpack": "^2.6.0",
     "parse-dds": "^1.2.1",
     "prettier": "^2.6.0",
     "printenvz": "file:./vendor/printenvz",
@@ -109,8 +108,7 @@
     "webpack-bundle-analyzer": "^4.5.0",
     "webpack-dev-middleware": "^5.3.4",
     "webpack-hot-middleware": "^2.25.1",
-    "webpack-merge": "^6.0.1",
-    "xvfb-maybe": "^0.2.1"
+    "webpack-merge": "^6.0.1"
   },
   "devDependencies": {
     "@github/markdownlint-github": "^0.1.0",
@@ -159,7 +157,6 @@
     "@types/webpack": "^5.28.5",
     "@types/webpack-bundle-analyzer": "^4.7.0",
     "@types/webpack-hot-middleware": "^2.25.9",
-    "@types/webpack-merge": "^5.0.0",
     "diff": "^8.0.3",
     "electron": "40.8.1",
     "electron-builder": "^25.1.8",
