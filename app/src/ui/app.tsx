@@ -213,6 +213,7 @@ import { AddWorktreeDialog } from './worktrees/add-worktree-dialog'
 import { RenameWorktreeDialog } from './worktrees/rename-worktree-dialog'
 import { DeleteWorktreeDialog } from './worktrees/delete-worktree-dialog'
 import { CantDeleteWorktreeUncommittedChanges } from './worktrees/cant-delete-worktree-uncommitted-changes-dialog'
+import { getEditorOverrideLabel } from '../models/editor-override'
 
 const MinuteInMilliseconds = 1000 * 60
 const HourInMilliseconds = MinuteInMilliseconds * 60
@@ -1395,7 +1396,14 @@ export class App extends React.Component<IAppProps, IAppState> {
    * Gets a label string for the currently selected external editor, or
    * `undefined` if the user has selected a custom editor.
    */
-  private get externalEditorLabel() {
+  private getExternalEditorLabel(repo: Repository | CloningRepository) {
+    if (repo instanceof Repository && repo.customEditorOverride) {
+      return getEditorOverrideLabel(repo.customEditorOverride)
+    }
+    return this.defaultExternalEditorLabel
+  }
+
+  private get defaultExternalEditorLabel() {
     return this.state.useCustomEditor
       ? undefined
       : this.state.selectedExternalEditor ?? undefined
@@ -3119,7 +3127,7 @@ export class App extends React.Component<IAppProps, IAppState> {
         onOpenInShell={this.openInShell}
         onShowRepository={this.showRepository}
         onOpenInExternalEditor={this.openInExternalEditor}
-        externalEditorLabel={this.externalEditorLabel}
+        externalEditorLabel={this.defaultExternalEditorLabel}
         shellLabel={useCustomShell ? undefined : selectedShell}
         dispatcher={this.props.dispatcher}
         showBranchNameInRepoList={this.state.showBranchNameInRepoList}
@@ -3346,7 +3354,7 @@ export class App extends React.Component<IAppProps, IAppState> {
       onOpenInExternalEditor: this.openInExternalEditor,
       askForConfirmationOnRemoveRepository:
         this.state.askForConfirmationOnRepositoryRemoval,
-      externalEditorLabel: this.externalEditorLabel,
+      externalEditorLabel: this.getExternalEditorLabel(repository),
       onChangeRepositoryAlias: onChangeRepositoryAlias,
       onRemoveRepositoryAlias: onRemoveRepositoryAlias,
       onChangeRepositoryGroupName: onChangeRepositoryGroupName,
@@ -3753,7 +3761,9 @@ export class App extends React.Component<IAppProps, IAppState> {
           isExternalEditorAvailable={
             state.useCustomEditor || state.selectedExternalEditor !== null
           }
-          externalEditorLabel={this.externalEditorLabel}
+          externalEditorLabel={this.getExternalEditorLabel(
+            selectedState.repository
+          )}
           resolvedExternalEditor={state.resolvedExternalEditor}
           onOpenInExternalEditor={this.onOpenInExternalEditor}
           appMenu={state.appMenuState[0]}

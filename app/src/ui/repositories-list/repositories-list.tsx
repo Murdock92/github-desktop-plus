@@ -32,6 +32,7 @@ import { ClickSource } from '../lib/list'
 import { getRepositoryType } from '../../lib/git/rev-parse'
 import { FoldoutType } from '../../lib/app-state'
 import { pruneWorktrees } from '../../lib/git/worktree'
+import { getEditorOverrideLabel } from '../../models/editor-override'
 
 const BlankSlateImage = encodePathAsUrl(__dirname, 'static/empty-no-repo.svg')
 
@@ -483,7 +484,7 @@ export class RepositoriesList extends React.Component<
           item.repository.isLinkedWorktree),
       isVirtualLinkedWorktreeRow: item.isVirtualLinkedWorktree,
       isPrunableWorktreeRow: item.isPrunableWorktree,
-      externalEditorLabel: this.props.externalEditorLabel,
+      externalEditorLabel: this.getExternalEditorLabel(item.repository),
       onChangeRepositoryAlias: this.onChangeRepositoryAlias,
       onRemoveRepositoryAlias: this.onRemoveRepositoryAlias,
       onChangeRepositoryGroupName: this.onChangeRepositoryGroupName,
@@ -562,6 +563,15 @@ export class RepositoriesList extends React.Component<
         />
       </div>
     )
+  }
+
+  private getExternalEditorLabel(
+    repository: Repositoryish
+  ): string | undefined {
+    if (repository instanceof Repository && repository.customEditorOverride) {
+      return getEditorOverrideLabel(repository.customEditorOverride)
+    }
+    return this.props.externalEditorLabel
   }
 
   private onSelectionChanged = (selectedItem: IRepositoryListItem | null) => {
