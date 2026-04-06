@@ -49,6 +49,8 @@ This is an **up-to-date** fork of [GitHub Desktop](https://desktop.github.com) w
 - Allow generating **branch name presets** by calling an external script (e.g. fetching ticket numbers from an issue tracker).  
   [Click here for more details](docs/branch-name-presets.md).
 
+- Allow showing the effective **Git name and email** used for commits more prominently above the commit message input.
+
 ### Repositories list:
 
 - "**Pull all**" button to fetch and pull all your repositories at once.
@@ -282,11 +284,11 @@ Finally, double-click the .AppImage file to run it.
 
 Before opening a new issue, please check the [Known Issues](docs/known-issues.md) document for common issues and their workarounds.
 
-## Command Line Interface
+## Command Line Interface 💻
 
 GitHub Desktop Plus includes a CLI (`github-desktop-plus-cli`) for opening and cloning repositories from the terminal. See the [CLI documentation](docs/cli.md) for usage details and instructions on creating a shorter alias.
 
-## Running the app locally 💻
+## Running the app locally 🏗️
 
 ### From the terminal
 
