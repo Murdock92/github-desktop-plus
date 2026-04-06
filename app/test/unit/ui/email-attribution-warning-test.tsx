@@ -21,6 +21,8 @@ function createAccount(email: string) {
     'mona',
     getDotComAPIEndpoint(),
     '',
+    '',
+    0,
     [createEmail(email)],
     '',
     1,

@@ -21,14 +21,18 @@ function createForkRepository() {
   const parentOwner = new Owner('github', 'https://api.github.com', 2)
   const parent = new GitHubRepository(
     'desktop',
+    'github',
     parentOwner,
+    null,
     2,
     false,
     'https://github.com/github/desktop'
   )
   const fork = new GitHubRepository(
     'desktop',
+    'github',
     owner,
+    null,
     1,
     false,
     'https://github.com/desktop/desktop',
@@ -46,7 +50,9 @@ describe('static status and link components', () => {
   it('renders repo ruleset links with the expected ruleset url', () => {
     const repository = new GitHubRepository(
       'desktop',
+      'github',
       new Owner('desktop', 'https://api.github.com', 1),
+      null,
       1,
       false,
       'https://github.com/desktop/desktop'

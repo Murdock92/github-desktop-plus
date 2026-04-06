@@ -19,7 +19,14 @@ function createBranch(
   type: BranchType,
   ref: string
 ) {
-  return new Branch(name, upstream, { sha: 'abc123' }, type, ref)
+  return new Branch(
+    name,
+    upstream,
+    { sha: 'abc123', author: { date: new Date() } },
+    type,
+    ref,
+    false
+  )
 }
 
 describe('visual helper surfaces', () => {

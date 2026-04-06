@@ -19,7 +19,13 @@ const fixtureRepositoryPath = '/tmp/desktop-fixture'
 
 function createRepository(alias: string | null = null) {
   const owner = new Owner('octocat', 'https://api.github.com', 1)
-  const gitHubRepository = new GitHubRepository('desktop', owner, 99)
+  const gitHubRepository = new GitHubRepository(
+    'desktop',
+    'github',
+    owner,
+    null,
+    99
+  )
 
   return new Repository(
     fixtureRepositoryPath,
@@ -43,11 +49,16 @@ describe('RepositoryListItem', () => {
     const repository = createRepository()
     const view = render(
       <RepositoryListItem
+        title={repository.name}
         repository={repository}
         needsDisambiguation={false}
         matches={noMatches}
         aheadBehind={{ ahead: 2, behind: 1 }}
         changedFilesCount={3}
+        branchName={'main'}
+        isNestedWorktree={false}
+        mainWorktreeName={null}
+        isPrunableWorktree={false}
       />
     )
 
@@ -67,11 +78,16 @@ describe('RepositoryListItem', () => {
     const repository = createRepository('desktop-app')
     const view = render(
       <RepositoryListItem
+        title={repository.name}
         repository={repository}
         needsDisambiguation={true}
         matches={noMatches}
         aheadBehind={null}
         changedFilesCount={0}
+        branchName={'main'}
+        isNestedWorktree={false}
+        mainWorktreeName={null}
+        isPrunableWorktree={false}
       />
     )
 
@@ -86,11 +102,16 @@ describe('RepositoryListItem', () => {
     const repository = createRepository('desktop-app')
     const view = render(
       <RepositoryListItem
+        title={repository.name}
         repository={repository}
         needsDisambiguation={true}
         matches={noMatches}
         aheadBehind={null}
         changedFilesCount={0}
+        branchName={'main'}
+        isNestedWorktree={false}
+        mainWorktreeName={null}
+        isPrunableWorktree={false}
       />
     )
 

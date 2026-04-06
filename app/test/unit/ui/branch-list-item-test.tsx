@@ -30,6 +30,8 @@ describe('BranchListItem', () => {
         isCurrentBranch={true}
         matches={noMatches}
         authorDate={new Date(now - 30 * 1000)}
+        isLocalOnly={false}
+        worktreeName={null}
       />
     )
 
@@ -57,6 +59,8 @@ describe('BranchListItem', () => {
         matches={noMatches}
         authorDate={undefined}
         onDropOntoBranch={onDropOntoBranch}
+        isLocalOnly={false}
+        worktreeName={null}
       />
     )
 
@@ -96,6 +100,8 @@ describe('BranchListItem', () => {
         matches={noMatches}
         authorDate={undefined}
         onDropOntoCurrentBranch={onDropOntoCurrentBranch}
+        isLocalOnly={false}
+        worktreeName={null}
       />
     )
 

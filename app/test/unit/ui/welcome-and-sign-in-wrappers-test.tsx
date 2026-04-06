@@ -61,6 +61,8 @@ function createExistingAccountWarningState(): IExistingAccountWarning {
       'mona',
       'https://api.github.com',
       'token',
+      '',
+      0,
       [],
       '',
       1,

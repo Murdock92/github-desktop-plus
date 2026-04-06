@@ -11,7 +11,9 @@ import { fireEvent, render, screen } from '../../helpers/ui/render'
 function createGitHubRepository() {
   return new GitHubRepository(
     'desktop',
+    'github',
     new Owner('desktop', 'https://api.github.com', 1),
+    null,
     1,
     false,
     'https://github.com/desktop/desktop'

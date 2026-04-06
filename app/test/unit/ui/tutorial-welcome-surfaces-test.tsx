@@ -34,7 +34,9 @@ function createRepository() {
   const owner = new Owner('octocat', 'https://api.github.com', 1)
   const gitHubRepository = new GitHubRepository(
     'desktop',
+    'github',
     owner,
+    null,
     42,
     false,
     'https://github.com/octocat/desktop'
