@@ -282,6 +282,43 @@ Finally, double-click the .AppImage file to run it.
 
 Before opening a new issue, please check the [Known Issues](docs/known-issues.md) document for common issues and their workarounds.
 
+## Creating a CLI alias
+
+The CLI command `github-desktop-plus-cli` can be long to type. You can create a shorter alias (e.g. `github-plus`) in your shell:
+
+<details>
+<summary><b>Windows (PowerShell)</b></summary>
+
+Add this line to your PowerShell profile (open it with `notepad $PROFILE`):
+
+```powershell
+Set-Alias github-plus github-desktop-plus-cli
+```
+
+</details>
+
+<details>
+<summary><b>macOS / Linux (Bash or Zsh)</b></summary>
+
+Add this line to your `~/.bashrc` or `~/.zshrc`:
+
+```bash
+alias github-plus='github-desktop-plus-cli'
+```
+
+</details>
+
+<details>
+<summary><b>macOS / Linux (Fish)</b></summary>
+
+Run once:
+
+```fish
+alias --save github-plus github-desktop-plus-cli
+```
+
+</details>
+
 ## Running the app locally 💻
 
 ### From the terminal
