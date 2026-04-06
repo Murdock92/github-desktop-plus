@@ -282,6 +282,10 @@ Finally, double-click the .AppImage file to run it.
 
 Before opening a new issue, please check the [Known Issues](docs/known-issues.md) document for common issues and their workarounds.
 
+## Command Line Interface
+
+GitHub Desktop Plus includes a CLI (`github-desktop-plus-cli`) for opening and cloning repositories from the terminal. See the [CLI documentation](docs/cli.md) for usage details and instructions on creating a shorter alias.
+
 ## Running the app locally 💻
 
 ### From the terminal

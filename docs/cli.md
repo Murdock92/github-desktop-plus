@@ -1,0 +1,39 @@
+# Command Line Interface
+
+GitHub Desktop Plus includes a CLI that lets you open repositories and clone them directly from the terminal.
+
+## Usage
+
+```
+github-desktop-plus-cli                           Open the current directory
+github-desktop-plus-cli open [path]               Open the provided path
+github-desktop-plus-cli clone [-b branch] <url>   Clone a repository by URL or name/owner (e.g. torvalds/linux)
+```
+
+## Creating a shorter alias
+
+If you find `github-desktop-plus-cli` too long to type, you can create a shorter alias in your shell (e.g. `github-plus`, or even just `github`):
+
+### Windows (PowerShell)
+
+Add this line to your PowerShell profile (open it with `notepad $PROFILE`):
+
+```powershell
+Set-Alias github-plus github-desktop-plus-cli
+```
+
+### macOS / Linux (Bash or Zsh)
+
+Add this line to your `~/.bashrc` or `~/.zshrc`:
+
+```bash
+alias github-plus='github-desktop-plus-cli'
+```
+
+### macOS / Linux (Fish)
+
+Run once:
+
+```fish
+alias --save github-plus github-desktop-plus-cli
+```
