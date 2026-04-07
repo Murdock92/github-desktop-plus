@@ -49,7 +49,7 @@ describe('RepositoryListItem', () => {
     const repository = createRepository()
     const view = render(
       <RepositoryListItem
-        title={repository.name}
+        title={repository.alias ?? repository.name}
         repository={repository}
         needsDisambiguation={false}
         matches={noMatches}
@@ -78,7 +78,7 @@ describe('RepositoryListItem', () => {
     const repository = createRepository('desktop-app')
     const view = render(
       <RepositoryListItem
-        title={repository.name}
+        title={repository.alias ?? repository.name}
         repository={repository}
         needsDisambiguation={true}
         matches={noMatches}
@@ -102,7 +102,7 @@ describe('RepositoryListItem', () => {
     const repository = createRepository('desktop-app')
     const view = render(
       <RepositoryListItem
-        title={repository.name}
+        title={repository.alias ?? repository.name}
         repository={repository}
         needsDisambiguation={true}
         matches={noMatches}
