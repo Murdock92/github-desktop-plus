@@ -31,7 +31,7 @@ describe('git/clone', () => {
     const destPath = await createTempDirectory(t)
     const clonePath = path.join(destPath, 'cloned')
 
-    await clone(source.path, clonePath, {})
+    await clone(source.path, clonePath, {}, null)
 
     assert.equal(existsSync(path.join(clonePath, '.git')), true)
     assert.equal(existsSync(path.join(clonePath, 'README.md')), true)
@@ -56,7 +56,7 @@ describe('git/clone', () => {
     const destPath = await createTempDirectory(t)
     const clonePath = path.join(destPath, 'cloned')
 
-    await clone(source.path, clonePath, { branch: 'feature' })
+    await clone(source.path, clonePath, { branch: 'feature' }, null)
 
     // Verify the feature branch was checked out
     const result = await exec(['rev-parse', '--abbrev-ref', 'HEAD'], clonePath)
@@ -75,7 +75,7 @@ describe('git/clone', () => {
     const clonePath = path.join(destPath, 'cloned')
 
     const progressEvents: Array<{ kind: string }> = []
-    await clone(source.path, clonePath, {}, progress => {
+    await clone(source.path, clonePath, {}, null, progress => {
       progressEvents.push({ kind: progress.kind })
     })
 
@@ -104,7 +104,7 @@ describe('git/clone', () => {
     const destPath = await createTempDirectory(t)
     const clonePath = path.join(destPath, 'cloned')
 
-    await clone(source, clonePath, { defaultBranch: 'trunk' })
+    await clone(source, clonePath, { defaultBranch: 'trunk' }, null)
 
     assert.equal(existsSync(path.join(clonePath, '.git')), true)
 

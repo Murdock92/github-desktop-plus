@@ -14,7 +14,8 @@ describe('CloningRepositoriesStore', () => {
       const store = new CloningRepositoriesStore()
       const repo = new CloningRepository(
         '/tmp/test',
-        'https://github.com/owner/repo.git'
+        'https://github.com/owner/repo.git',
+        null
       )
 
       // Manually push to simulate the clone starting
@@ -29,7 +30,8 @@ describe('CloningRepositoriesStore', () => {
       const store = new CloningRepositoriesStore()
       const repo = new CloningRepository(
         '/tmp/test',
-        'https://github.com/owner/repo.git'
+        'https://github.com/owner/repo.git',
+        null
       )
 
       // Should not throw
@@ -43,7 +45,8 @@ describe('CloningRepositoriesStore', () => {
       const store = new CloningRepositoriesStore()
       const repo = new CloningRepository(
         '/tmp/test',
-        'https://github.com/owner/repo.git'
+        'https://github.com/owner/repo.git',
+        null
       )
       assert.equal(store.getRepositoryState(repo), null)
     })
@@ -59,7 +62,8 @@ describe('CloningRepositoriesStore', () => {
 
       const repo = new CloningRepository(
         '/tmp/test',
-        'https://github.com/owner/repo.git'
+        'https://github.com/owner/repo.git',
+        null
       )
       store.remove(repo) // triggers emitUpdate
 

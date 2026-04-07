@@ -22,7 +22,11 @@ type APIMethodOverrides = {
  * ```
  */
 export function createMockAPI(overrides: APIMethodOverrides = {}): API {
-  const api = new API('https://api.github.com', 'mock-token-for-testing')
+  const api = new API(
+    'https://api.github.com',
+    'mock-token-for-testing',
+    'mock-login-for-testing'
+  )
   const mockedMethods = new Set(Object.keys(overrides))
 
   for (const [method, impl] of Object.entries(overrides)) {

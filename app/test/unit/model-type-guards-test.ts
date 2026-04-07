@@ -18,7 +18,9 @@ function createGitHubRepository(): Repository {
   const owner = new Owner('owner', 'https://api.github.com', 1)
   const ghRepo = new GitHubRepository(
     'repo',
+    'github',
     owner,
+    null,
     1,
     false,
     'https://github.com/owner/repo',
@@ -35,7 +37,9 @@ function createForkedGitHubRepository(): Repository {
   const upstreamOwner = new Owner('upstream-owner', 'https://api.github.com', 1)
   const parentGhRepo = new GitHubRepository(
     'repo',
+    'github',
     upstreamOwner,
+    null,
     1,
     false,
     'https://github.com/upstream-owner/repo',
@@ -48,7 +52,9 @@ function createForkedGitHubRepository(): Repository {
   const forkOwner = new Owner('fork-owner', 'https://api.github.com', 2)
   const forkedGhRepo = new GitHubRepository(
     'repo',
+    'github',
     forkOwner,
+    null,
     2,
     false,
     'https://github.com/fork-owner/repo',

@@ -31,6 +31,8 @@ function createDotComAccount(login = 'octocat'): Account {
     login,
     getDotComAPIEndpoint(),
     'test-token',
+    '',
+    0,
     [],
     'https://avatars.githubusercontent.com/u/1',
     1,
@@ -43,7 +45,18 @@ function createEnterpriseAccount(
   login = 'enterprise-user',
   endpoint = 'https://github.example.com/api/v3'
 ): Account {
-  return new Account(login, endpoint, 'ent-token', [], '', 2, login, 'free')
+  return new Account(
+    login,
+    endpoint,
+    'ent-token',
+    '',
+    0,
+    [],
+    '',
+    2,
+    login,
+    'free'
+  )
 }
 
 describe('SignInStore', () => {
@@ -74,7 +87,7 @@ describe('SignInStore', () => {
       }
     })
 
-    it('transitions to ExistingAccountWarning when a dotcom account exists', async () => {
+    it('transitions to Authentication even if a dotcom account exists', async () => {
       const existingAccount = createDotComAccount()
       accountsStore = createAccountsStore()
       signInStore = new SignInStore(accountsStore)
@@ -84,7 +97,7 @@ describe('SignInStore', () => {
       signInStore.beginDotComSignIn()
       const state = signInStore.getState()
       assert.notEqual(state, null)
-      assert.equal(state?.kind, SignInStep.ExistingAccountWarning)
+      assert.equal(state?.kind, SignInStep.Authentication)
     })
 
     it('calls resultCallback when provided', async () => {
@@ -171,7 +184,7 @@ describe('SignInStore', () => {
       }
     })
 
-    it('shows ExistingAccountWarning if enterprise account exists', async () => {
+    it('shows Authentication even if enterprise account exists', async () => {
       const endpoint = 'https://github.example.com/api/v3'
       const existingAccount = createEnterpriseAccount('user', endpoint)
       accountsStore = createAccountsStore()
@@ -183,7 +196,7 @@ describe('SignInStore', () => {
       await signInStore.setEndpoint('https://github.example.com')
 
       const state = signInStore.getState()
-      assert.equal(state?.kind, SignInStep.ExistingAccountWarning)
+      assert.equal(state?.kind, SignInStep.Authentication)
     })
   })
 

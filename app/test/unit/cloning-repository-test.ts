@@ -39,11 +39,13 @@ describe('CloningRepository', () => {
     it('generates unique IDs', () => {
       const firstRepository = new CloningRepository(
         '/tmp/a',
-        'https://github.com/owner/a.git'
+        'https://github.com/owner/a.git',
+        null
       )
       const secondRepository = new CloningRepository(
         '/tmp/b',
-        'https://github.com/owner/b.git'
+        'https://github.com/owner/b.git',
+        null
       )
 
       assert.notEqual(firstRepository.id, secondRepository.id)
@@ -52,7 +54,8 @@ describe('CloningRepository', () => {
     it('generates a hash from the repository identity', () => {
       const repository = new CloningRepository(
         '/tmp/test',
-        'https://github.com/owner/repo.git'
+        'https://github.com/owner/repo.git',
+        null
       )
 
       assert.ok(repository.hash.length > 0)

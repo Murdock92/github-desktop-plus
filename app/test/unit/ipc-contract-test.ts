@@ -69,6 +69,9 @@ describe('IPC channel contract', () => {
     'show-installing-update',
     'install-windows-cli',
     'uninstall-windows-cli',
+    'open-repository-in-new-window',
+    'set-window-title',
+    'restart-app',
   ] as const
 
   const expectedResponseChannels = [
@@ -98,6 +101,8 @@ describe('IPC channel contract', () => {
     'show-notification',
     'get-notifications-permission',
     'request-notifications-permission',
+    'update-main-process-config',
+    'get-main-process-config',
   ] as const
 
   describe('RequestChannels', () => {
