@@ -59,7 +59,7 @@ export async function getIgnoredFilesMatchingPatterns(
   // Files are NUL-separated; filter out empty entries from the split
   const ignoredFiles = result.stdout.split('\0').filter(f => f.length > 0)
 
-  const ig = ignore().add(patterns as string[])
+  const ig = ignore().add(patterns)
   return ignoredFiles.filter(f => ig.ignores(f))
 }
 
