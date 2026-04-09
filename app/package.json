@@ -28,6 +28,7 @@
     "chalk": "^2.3.0",
     "classnames": "^2.2.5",
     "codemirror": "^5.65.17",
+    "ignore": "^7.0.5",
     "codemirror-mode-elixir": "^1.1.2",
     "codemirror-mode-luau": "^1.0.2",
     "codemirror-mode-zig": "^1.0.7",
