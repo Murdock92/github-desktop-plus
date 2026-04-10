@@ -67,6 +67,8 @@ interface ICompareSidebarProps {
   readonly isMultiCommitOperationInProgress?: boolean
   readonly shasToHighlight: ReadonlyArray<string>
   readonly accounts: ReadonlyArray<Account>
+  /** All local and remote branches, used to render branch head labels on the graph. */
+  readonly allBranches: ReadonlyArray<Branch>
 }
 
 interface ICompareSidebarState {
@@ -342,6 +344,7 @@ export class CompareSidebar extends React.Component<
         showAbsoluteDates={
           this.props.commitDateDisplay === CommitDateDisplay.Absolute
         }
+        allBranches={this.props.allBranches}
       />
     )
   }

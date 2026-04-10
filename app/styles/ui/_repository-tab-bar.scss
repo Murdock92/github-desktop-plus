@@ -1,0 +1,136 @@
+.repository-tab-bar {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  flex-shrink: 0;
+  height: 30px;
+  background: var(--background-color);
+  border-bottom: 1px solid var(--box-border-color);
+  overflow-x: auto;
+  overflow-y: hidden;
+
+  // Hide scrollbar but keep it functional (mostly for very long tab lists)
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.repository-tab {
+  // Reset button defaults
+  appearance: none;
+  border: none;
+  border-right: 1px solid var(--box-border-color);
+  border-bottom: 3px solid transparent;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0 6px 0 10px;
+  margin: 0;
+  background: var(--background-color);
+  color: var(--text-secondary-color);
+  font-family: var(--font-family-sans-serif);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+  max-width: 200px;
+  min-width: 80px;
+  flex-shrink: 0;
+  transition:
+    background 100ms ease,
+    color 100ms ease;
+  position: relative;
+
+  // Render above its neighbours so the bottom-border active indicator isn't
+  // clipped by adjacent tab borders
+  &.selected {
+    z-index: 1;
+    color: var(--text-color);
+    border-bottom-color: var(--tab-bar-active-color);
+    background: var(--background-color);
+  }
+
+  &:hover:not(.selected) {
+    background: var(--tab-bar-hover-background-color);
+    color: var(--text-color);
+  }
+
+  &:focus-visible {
+    outline: var(--focus-color) auto 2px;
+    outline-offset: -3px;
+  }
+
+  // Missing-on-disk indicator
+  &.missing .repository-tab-icon {
+    color: var(--color-warning);
+  }
+
+  // Cloning progress indicator
+  &.cloning .repository-tab-icon {
+    color: var(--tab-bar-active-color);
+  }
+}
+
+.repository-tab-icon {
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  opacity: 0.7;
+
+  .repository-tab.selected & {
+    opacity: 1;
+  }
+}
+
+.repository-tab-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: left;
+}
+
+.repository-tab-close {
+  // Reset button defaults
+  appearance: none;
+  border: none;
+  border-radius: 4px;
+  box-shadow: none;
+  background: transparent;
+  color: inherit;
+  font-size: 10px;
+  padding: 2px;
+  margin: 0 0 0 2px;
+  cursor: pointer;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  width: 18px;
+  height: 18px;
+  transition:
+    opacity 100ms ease,
+    background 100ms ease;
+
+  // Only reveal the close button when the tab is hovered or focused
+  .repository-tab:hover &,
+  .repository-tab.selected & {
+    opacity: 0.6;
+  }
+
+  &:hover {
+    opacity: 1 !important;
+    background: var(--tab-bar-hover-background-color);
+
+    // Darken the ✕ on hover for emphasis
+    color: var(--text-color);
+  }
+
+  svg {
+    width: 10px;
+    height: 10px;
+  }
+}

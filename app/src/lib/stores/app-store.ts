@@ -390,6 +390,9 @@ import { getRepoHooks } from '../hooks/get-repo-hooks'
 const LastSelectedRepositoryIDKey = 'last-selected-repository-id'
 
 const RecentRepositoriesKey = 'recently-selected-repositories'
+
+/** localStorage key for the list of open repository tab IDs */
+const OpenTabsKey = 'open-repository-tabs'
 /**
  *  maximum number of repositories shown in the "Recent" repositories group
  *  in the repository switcher dropdown
@@ -522,6 +525,9 @@ export class AppStore extends TypedBaseStore<IAppState> {
   private recentRepositories: ReadonlyArray<number> = new Array<number>()
 
   private selectedRepository: Repository | CloningRepository | null = null
+
+  /** The list of repositories currently open in tabs */
+  private openTabs: ReadonlyArray<Repository | CloningRepository> = []
 
   /** The background fetcher for the currently selected repository. */
   private currentBackgroundFetcher: BackgroundFetcher | null = null
@@ -1145,6 +1151,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
       repositories,
       recentRepositories: this.recentRepositories,
       localRepositoryStateLookup: this.localRepositoryStateLookup,
+      openTabs: this.openTabs,
       windowState: this.windowState,
       windowZoomFactor: this.windowZoomFactor,
       appIsFocused: this.appIsFocused,
@@ -2138,6 +2145,10 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
     this.selectedRepository = repository
 
+    if (repository !== null) {
+      this.addToOpenTabs(repository)
+    }
+
     this.emitUpdate()
     this.stopBackgroundFetching()
     this.stopPullRequestUpdater()
@@ -2213,6 +2224,97 @@ export class AppStore extends TypedBaseStore<IAppState> {
       this.repositories.filter(r => this.recentRepositories.includes(r.id))
     )
     this.emitUpdate()
+  }
+
+  /**
+   * Add a repository to the open tabs list if it is not already present.
+   * Persists the updated list to localStorage (only Repository instances,
+   * not CloningRepository, since those have ephemeral IDs).
+   */
+  private addToOpenTabs(repository: Repository | CloningRepository): void {
+    if (!this.openTabs.some(r => r.id === repository.id)) {
+      this.openTabs = [...this.openTabs, repository]
+      this.persistOpenTabs()
+    }
+  }
+
+  /** Persist Repository tab IDs to localStorage. */
+  private persistOpenTabs(): void {
+    const ids = this.openTabs
+      .filter((r): r is Repository => r instanceof Repository)
+      .map(r => r.id)
+    setNumberArray(OpenTabsKey, ids)
+  }
+
+  /**
+   * Restore the open tabs from localStorage after initial repositories have
+   * been loaded. Also ensures the currently selected repository always has a
+   * tab, even if it was not previously persisted.
+   */
+  private restoreOpenTabs(): void {
+    const ids = getNumberArray(OpenTabsKey)
+    const restored: Array<Repository | CloningRepository> = []
+    for (const id of ids) {
+      const repo = this.repositories.find(r => r.id === id)
+      if (repo) {
+        restored.push(repo)
+      }
+    }
+
+    // Guarantee the active repo always has a tab
+    if (
+      this.selectedRepository !== null &&
+      !restored.some(r => r.id === this.selectedRepository?.id)
+    ) {
+      restored.push(this.selectedRepository)
+    }
+
+    this.openTabs = restored
+  }
+
+  /** This shouldn't be called directly. See `Dispatcher`. */
+  public _closeTab(repository: Repository | CloningRepository): void {
+    const index = this.openTabs.findIndex(r => r.id === repository.id)
+    if (index < 0) {
+      return
+    }
+
+    const newTabs = [...this.openTabs]
+    newTabs.splice(index, 1)
+    this.openTabs = newTabs
+    this.persistOpenTabs()
+
+    // If we closed the active tab, select an adjacent one
+    if (this.selectedRepository?.id === repository.id) {
+      const nextRepo = newTabs[Math.min(index, newTabs.length - 1)] ?? null
+      this._selectRepository(nextRepo)
+    }
+
+    this.emitUpdate()
+  }
+
+  /** This shouldn't be called directly. See `Dispatcher`. */
+  public _selectNextTab(): void {
+    if (this.openTabs.length <= 1) {
+      return
+    }
+    const index = this.openTabs.findIndex(
+      r => r.id === this.selectedRepository?.id
+    )
+    const nextIndex = (index + 1) % this.openTabs.length
+    this._selectRepository(this.openTabs[nextIndex])
+  }
+
+  /** This shouldn't be called directly. See `Dispatcher`. */
+  public _selectPreviousTab(): void {
+    if (this.openTabs.length <= 1) {
+      return
+    }
+    const index = this.openTabs.findIndex(
+      r => r.id === this.selectedRepository?.id
+    )
+    const prevIndex = (index - 1 + this.openTabs.length) % this.openTabs.length
+    this._selectRepository(this.openTabs[prevIndex])
   }
 
   // finish `_selectRepository`s refresh tasks
@@ -2658,6 +2760,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
       showChangesFilterDefault
     )
 
+    this.restoreOpenTabs()
+
     this.emitUpdateNow()
 
     this.accountsStore.refresh()
@@ -2950,6 +3054,16 @@ export class AppStore extends TypedBaseStore<IAppState> {
       (!selectedRepository && newSelectedRepository)
     if (repositoryChanged) {
       this._selectRepository(newSelectedRepository)
+      this.emitUpdate()
+    }
+
+    // Sanitize open tabs to only include repos that still exist in this.repositories
+    const prevTabCount = this.openTabs.length
+    this.openTabs = this.openTabs.filter(tab =>
+      this.repositories.some(r => r.id === tab.id)
+    )
+    if (this.openTabs.length !== prevTabCount) {
+      this.persistOpenTabs()
       this.emitUpdate()
     }
   }
@@ -4874,9 +4988,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
       repository,
       account
     )
-    const refreshedRepo = await this.repositoryWithRefreshedGitHubRepository(
-      repo
-    )
+    const refreshedRepo =
+      await this.repositoryWithRefreshedGitHubRepository(repo)
     await this._refreshRepository(refreshedRepo)
   }
 
@@ -5529,9 +5642,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
   private async fastForwardBranches(repository: Repository) {
     try {
-      const eligibleBranches = await getBranchesDifferingFromUpstream(
-        repository
-      )
+      const eligibleBranches =
+        await getBranchesDifferingFromUpstream(repository)
 
       await fastForwardBranches(repository, eligibleBranches)
     } catch (e) {
@@ -7195,6 +7307,10 @@ export class AppStore extends TypedBaseStore<IAppState> {
       return
     }
 
+    // Close the tab for this repository before it disappears from the list
+    this.openTabs = this.openTabs.filter(r => r.id !== repository.id)
+    this.persistOpenTabs()
+
     const allRepositories = await this.repositoriesStore.getAll()
     if (allRepositories.length === 0) {
       this._closeFoldout(FoldoutType.Repository)
@@ -7259,9 +7375,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
     // association is out of date. So try again before we bail on providing an
     // authenticating user.
     if (!account) {
-      updatedRepository = await this.repositoryWithRefreshedGitHubRepository(
-        repository
-      )
+      updatedRepository =
+        await this.repositoryWithRefreshedGitHubRepository(repository)
     }
 
     return fn(updatedRepository)

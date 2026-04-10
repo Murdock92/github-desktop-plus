@@ -315,6 +315,21 @@ export class Dispatcher {
     return this.appStore._selectRepository(repository, persistSelection)
   }
 
+  /** Close a repository tab. If the tab being closed is active, an adjacent tab is selected. */
+  public closeTab(repository: Repository | CloningRepository): void {
+    this.appStore._closeTab(repository)
+  }
+
+  /** Select the next open repository tab, wrapping around. */
+  public selectNextTab(): void {
+    this.appStore._selectNextTab()
+  }
+
+  /** Select the previous open repository tab, wrapping around. */
+  public selectPreviousTab(): void {
+    this.appStore._selectPreviousTab()
+  }
+
   /** Change the selected section in the repository. */
   public changeRepositorySection(
     repository: Repository,

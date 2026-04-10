@@ -152,6 +152,7 @@ import { CommitMessageDialog } from './commit-message/commit-message-dialog'
 import { buildAutocompletionProviders } from './autocompletion'
 import { DragType, DropTargetSelector } from '../models/drag-drop'
 import { dragAndDropManager } from '../lib/drag-and-drop-manager'
+import { RepositoryTabBar } from './repository-tab-bar/repository-tab-bar'
 import { MultiCommitOperation } from './multi-commit-operation/multi-commit-operation'
 import { WarnLocalChangesBeforeUndo } from './undo/warn-local-changes-before-undo'
 import { WarnUndoPushedCommit } from './undo/warn-undo-pushed-commit'
@@ -542,6 +543,12 @@ export class App extends React.Component<IAppProps, IAppState> {
         return this.resizeActiveResizable('decrease-active-resizable-width')
       case 'toggle-changes-filter':
         return this.toggleChangesFilterVisibility()
+      case 'select-next-tab':
+        return this.props.dispatcher.selectNextTab()
+      case 'select-previous-tab':
+        return this.props.dispatcher.selectPreviousTab()
+      case 'close-tab':
+        return this.closeCurrentTab()
       default:
         if (isTestMenuEvent(name)) {
           return showTestUI(
@@ -560,6 +567,14 @@ export class App extends React.Component<IAppProps, IAppState> {
    */
   private toggleChangesFilterVisibility() {
     this.props.dispatcher.toggleChangesFilterVisibility()
+  }
+
+  /** Close the currently active repository tab, selecting an adjacent one. */
+  private closeCurrentTab() {
+    const selectedRepository = this.state.selectedState?.repository
+    if (selectedRepository) {
+      this.props.dispatcher.closeTab(selectedRepository)
+    }
   }
 
   /**
@@ -1097,7 +1112,7 @@ export class App extends React.Component<IAppProps, IAppState> {
     if (repository) {
       const repositoryTitle =
         repository instanceof Repository
-          ? repository.alias ?? repository.name
+          ? (repository.alias ?? repository.name)
           : repository.name
       return `${repositoryTitle} - GitHub Desktop`
     }
@@ -1148,6 +1163,17 @@ export class App extends React.Component<IAppProps, IAppState> {
     }
 
     if (this.isShowingModal) {
+      return
+    }
+
+    // Ctrl+Tab / Ctrl+Shift+Tab — cycle through open repository tabs
+    if (event.ctrlKey && event.key === 'Tab') {
+      if (event.shiftKey) {
+        this.props.dispatcher.selectPreviousTab()
+      } else {
+        this.props.dispatcher.selectNextTab()
+      }
+      event.preventDefault()
       return
     }
 
@@ -1390,7 +1416,7 @@ export class App extends React.Component<IAppProps, IAppState> {
   private get externalEditorLabel() {
     return this.state.useCustomEditor
       ? undefined
-      : this.state.selectedExternalEditor ?? undefined
+      : (this.state.selectedExternalEditor ?? undefined)
   }
 
   private openCurrentRepositoryInExternalEditor() {
@@ -3045,11 +3071,32 @@ export class App extends React.Component<IAppProps, IAppState> {
         className={this.getDesktopAppContentsClassNames()}
       >
         {this.renderToolbar()}
+        {this.renderRepositoryTabBar()}
         {this.renderBanner()}
         {this.renderRepository()}
         {this.renderPopups()}
         {this.renderDragElement()}
       </div>
+    )
+  }
+
+  private renderRepositoryTabBar() {
+    const { openTabs } = this.state
+
+    // The bar renders itself as null when there is only one tab, but we skip
+    // the render entirely here when there are no open tabs at all.
+    if (!openTabs || openTabs.length === 0) {
+      return null
+    }
+
+    const selectedRepository = this.state.selectedState?.repository ?? null
+
+    return (
+      <RepositoryTabBar
+        openTabs={openTabs}
+        selectedRepository={selectedRepository}
+        dispatcher={this.props.dispatcher}
+      />
     )
   }
 

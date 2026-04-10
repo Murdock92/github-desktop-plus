@@ -28,6 +28,8 @@ import { Emoji } from '../../lib/emoji'
 import { enableAccessibleListToolTips } from '../../lib/feature-flag'
 import { TooltippedContent } from '../lib/tooltipped-content'
 import { formatDate } from '../../lib/format-date'
+import { ICommitGraphRow } from './commit-graph-layout'
+import { CommitGraphCell } from './commit-graph-cell'
 
 interface ICommitProps {
   readonly gitHubRepository: GitHubRepository | null
@@ -52,6 +54,12 @@ interface ICommitProps {
   readonly accounts: ReadonlyArray<Account>
   readonly dragSourceBranch?: Branch
   readonly showAbsoluteDates: boolean
+  /** Graph lane layout data for this row, if the graph column is enabled. */
+  readonly graphRow?: ICommitGraphRow
+  /** Total number of graph columns (determines SVG width). */
+  readonly graphNumColumns?: number
+  /** Branch names whose tip is this commit, for rendering head labels on the graph. */
+  readonly branchLabels?: ReadonlyArray<string>
 }
 
 interface ICommitListItemState {
@@ -131,8 +139,12 @@ export class CommitListItem extends React.PureComponent<
       ? 'Empty commit message'
       : commit.summary
 
+    const { graphRow, graphNumColumns } = this.props
+    const hasGraph = graphRow !== undefined && graphNumColumns !== undefined
+
     const commitClassNames = classNames('commit', {
       'merge-commit': commit.isMergeCommit,
+      'with-graph': hasGraph,
     })
     const summaryClassNames = classNames('summary', {
       'empty-summary': hasEmptySummary,
@@ -157,6 +169,13 @@ export class CommitListItem extends React.PureComponent<
           onMouseLeave={this.onMouseLeave}
           onMouseUp={this.onMouseUp}
         >
+          {hasGraph && (
+            <CommitGraphCell
+              graphRow={graphRow!}
+              numColumns={graphNumColumns!}
+              branchLabels={this.props.branchLabels}
+            />
+          )}
           <div className="info">
             <RichText
               className={summaryClassNames}

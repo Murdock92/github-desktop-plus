@@ -203,6 +203,24 @@ export function buildDefaultMenu({
         click: emit('choose-repository'),
       },
       {
+        label: __DARWIN__ ? 'Select Next Tab' : 'Select ne&xt tab',
+        id: 'select-next-tab',
+        accelerator: 'Ctrl+Tab',
+        click: emit('select-next-tab'),
+      },
+      {
+        label: __DARWIN__ ? 'Select Previous Tab' : 'Select pre&vious tab',
+        id: 'select-previous-tab',
+        accelerator: 'Ctrl+Shift+Tab',
+        click: emit('select-previous-tab'),
+      },
+      {
+        label: __DARWIN__ ? 'Close Tab' : 'Cl&ose tab',
+        id: 'close-tab',
+        accelerator: 'CmdOrCtrl+W',
+        click: emit('close-tab'),
+      },
+      {
         label: __DARWIN__ ? 'Show Branches List' : '&Branches list',
         id: 'show-branches-list',
         accelerator: 'CmdOrCtrl+B',

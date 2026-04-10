@@ -9,6 +9,11 @@ import { arrayEquals } from '../../lib/equality'
 import { DragData, DragType } from '../../models/drag-drop'
 import classNames from 'classnames'
 import memoizeOne from 'memoize-one'
+import {
+  computeGraphLayout,
+  ICommitGraphLayout,
+  ICommitGraphInput,
+} from './commit-graph-layout'
 import { IMenuItem, showContextualMenu } from '../../lib/menu-item'
 import { getDotComAPIEndpoint } from '../../lib/api'
 import { clipboard } from 'electron'
@@ -205,6 +210,9 @@ interface ICommitListProps {
 
   /** Whether to display commit dates as absolute dates instead of relative times */
   readonly showAbsoluteDates: boolean
+
+  /** All branches (local + remote), used to render branch head labels on the commit graph. */
+  readonly allBranches?: ReadonlyArray<Branch>
 }
 
 interface ICommitListState {
@@ -224,6 +232,37 @@ export class CommitList extends React.Component<
   private commitIndexBySha = memoizeOne(
     (commitSHAs: ReadonlyArray<string>) =>
       new Map(commitSHAs.map((sha, index) => [sha, index]))
+  )
+
+  private graphLayout = memoizeOne(
+    (
+      commitSHAs: ReadonlyArray<string>,
+      commitLookup: Map<string, Commit>
+    ): ICommitGraphLayout => {
+      const inputs: ICommitGraphInput[] = commitSHAs.map(sha => {
+        const commit = commitLookup.get(sha)
+        return { sha, parentSHAs: commit?.parentSHAs ?? [] }
+      })
+      return computeGraphLayout(inputs)
+    }
+  )
+
+  private branchLabelsBySha = memoizeOne(
+    (
+      allBranches: ReadonlyArray<Branch>
+    ): Map<string, ReadonlyArray<string>> => {
+      const map = new Map<string, string[]>()
+      for (const branch of allBranches) {
+        const sha = branch.tip.sha
+        const existing = map.get(sha)
+        if (existing !== undefined) {
+          existing.push(branch.name)
+        } else {
+          map.set(sha, [branch.name])
+        }
+      }
+      return map
+    }
   )
 
   private containerRef = React.createRef<HTMLDivElement>()
@@ -310,6 +349,16 @@ export class CommitList extends React.Component<
       (isLocal || unpushedTags.length > 0) &&
       this.props.isLocalRepository === false
 
+    const { rows: graphRows, numColumns } = this.graphLayout(
+      this.props.commitSHAs,
+      this.props.commitLookup
+    )
+
+    const branchLabels =
+      this.props.allBranches !== undefined
+        ? this.branchLabelsBySha(this.props.allBranches).get(sha)
+        : undefined
+
     return (
       <CommitListItem
         key={commit.sha}
@@ -333,6 +382,9 @@ export class CommitList extends React.Component<
         accounts={this.props.accounts}
         dragSourceBranch={this.props.dragSourceBranch}
         showAbsoluteDates={this.props.showAbsoluteDates}
+        graphRow={graphRows[row]}
+        graphNumColumns={numColumns}
+        branchLabels={branchLabels}
       />
     )
   }

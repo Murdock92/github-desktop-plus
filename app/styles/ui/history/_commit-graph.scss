@@ -1,0 +1,49 @@
+/** Styles for the commit graph lane column in the history commit list */
+
+#commit-drag-element .commit,
+#commit-list .commit {
+  &.with-graph {
+    // The graph SVG handles its own left spacing via OFFSET_X
+    padding-left: 0;
+
+    .commit-graph-cell-wrapper {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      flex-shrink: 0;
+      align-self: stretch;
+    }
+
+    .commit-graph-cell {
+      flex-shrink: 0;
+      display: block;
+      align-self: stretch;
+    }
+
+    .commit-graph-branch-labels {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 2px;
+      margin-right: 4px;
+      min-width: 0;
+    }
+
+    .commit-graph-branch-label {
+      display: block;
+      font-size: 10px;
+      line-height: 14px;
+      padding: 0 4px;
+      border-radius: 3px;
+      border: 1px solid;
+      // border-color is set inline to match the lane colour
+      background: var(--background-color);
+      color: var(--text-color);
+      max-width: 100px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      cursor: default;
+    }
+  }
+}

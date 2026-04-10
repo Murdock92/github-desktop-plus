@@ -43,3 +43,6 @@ export type MenuIDs =
   | 'decrease-active-resizable-width'
   | 'increase-active-resizable-width'
   | 'toggle-changes-filter'
+  | 'select-next-tab'
+  | 'select-previous-tab'
+  | 'close-tab'

@@ -446,6 +446,7 @@ export class RepositoryView extends React.Component<
           this.props.askForConfirmationOnCheckoutCommit
         }
         accounts={this.props.accounts}
+        allBranches={branchesState.allBranches}
       />
     )
   }
@@ -504,6 +505,7 @@ export class RepositoryView extends React.Component<
           this.props.askForConfirmationOnCheckoutCommit
         }
         accounts={this.props.accounts}
+        allBranches={branchesState.allBranches}
       />
     )
   }

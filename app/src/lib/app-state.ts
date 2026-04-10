@@ -98,6 +98,15 @@ export interface IAppState {
    */
   readonly localRepositoryStateLookup: Map<number, ILocalRepositoryState>
 
+  /**
+   * The list of repositories currently open in tabs. Ordered by the time
+   * they were opened. Each tab corresponds to a repository the user has
+   * explicitly selected at least once during the current or a previous
+   * session (for Repository instances) or in the current session (for
+   * CloningRepository instances, which are not persisted).
+   */
+  readonly openTabs: ReadonlyArray<Repository | CloningRepository>
+
   readonly selectedState: PossibleSelections | null
 
   /**

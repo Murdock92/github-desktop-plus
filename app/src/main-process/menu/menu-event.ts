@@ -49,6 +49,9 @@ export type MenuEvent =
   | 'decrease-active-resizable-width'
   | 'increase-active-resizable-width'
   | 'toggle-changes-filter'
+  | 'select-next-tab'
+  | 'select-previous-tab'
+  | 'close-tab'
   | TestMenuEvent
 
 /**
@@ -92,7 +95,7 @@ const TestMenuEvents = [
   'test-about-dialog',
 ] as const
 
-export type TestMenuEvent = typeof TestMenuEvents[number]
+export type TestMenuEvent = (typeof TestMenuEvents)[number]
 
 export function isTestMenuEvent(value: any): value is TestMenuEvent {
   return TestMenuEvents.includes(value)
