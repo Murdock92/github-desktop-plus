@@ -5697,6 +5697,18 @@ export class AppStore extends TypedBaseStore<IAppState> {
     })
   }
 
+  public async _resetHardToUpstream(repository: Repository): Promise<void> {
+    const { branchesState } = this.repositoryStateCache.get(repository)
+    const { tip } = branchesState
+
+    if (tip.kind !== TipState.Valid || tip.branch.upstream === null) {
+      return
+    }
+
+    await reset(repository, GitResetMode.Hard, tip.branch.upstream)
+    await this._refreshRepository(repository)
+  }
+
   public async _pullAllRepositories(): Promise<void> {
     const repositories = await this.repositoriesStore.getAll()
     await Promise.all(

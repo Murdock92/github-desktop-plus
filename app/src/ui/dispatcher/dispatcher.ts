@@ -2376,6 +2376,8 @@ export class Dispatcher {
         )
       case RetryActionType.StashChanges:
         return this.stashChanges(retryAction.repository, retryAction.files)
+      case RetryActionType.ResetAndPull:
+        return this.resetAndPull(retryAction.repository)
       default:
         return assertNever(retryAction, `Unknown retry action: ${retryAction}`)
     }
@@ -2640,6 +2642,20 @@ export class Dispatcher {
     })
 
     await this.appStore._loadStatus(repository)
+  }
+
+  public async resetAndPull(repository: Repository): Promise<void> {
+    const retryAction: RetryAction = {
+      type: RetryActionType.ResetAndPull,
+      repository,
+    }
+
+    if (this.appStore._checkForUncommittedChanges(repository, retryAction)) {
+      return
+    }
+
+    await this.appStore._fetch(repository, FetchType.UserInitiatedTask)
+    await this.appStore._resetHardToUpstream(repository)
   }
 
   public setConfirmDiscardStashSetting(value: boolean) {
