@@ -520,8 +520,8 @@ export type PopupDetail =
       type: PopupType.DeleteWorktree
       repository: Repository
       worktreePath: string
-      storedRepositoryToRemove?: Repository
-      isDeletingCurrentWorktree?: boolean
+      storedRepositoryToRemove: Repository | null
+      isDeletingCurrentWorktree: boolean
     }
   | {
       type: PopupType.CantDeleteWorktreeUncommittedChanges

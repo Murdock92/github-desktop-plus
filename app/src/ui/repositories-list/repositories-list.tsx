@@ -423,7 +423,7 @@ export class RepositoriesList extends React.Component<
     const storedRepositoryToRemove =
       item.repository instanceof Repository && !item.isVirtualLinkedWorktree
         ? item.repository
-        : undefined
+        : null
 
     if (repository === null) {
       return
