@@ -35,6 +35,7 @@ describe('repository list item context menu', () => {
       onOpenInExternalEditor: () => {},
       onRemoveRepository: () => {},
       onAddNewWorktree: () => {},
+      onRenameWorktree: () => {},
       onChangeRepositoryAlias: () => {},
       onRemoveRepositoryAlias: () => {},
       onChangeRepositoryGroupName: () => {},
@@ -111,8 +112,9 @@ describe('repository list item context menu', () => {
     )
     const labels = items.flatMap(item => ('label' in item ? [item.label] : []))
 
-    assert(labels.includes('Change alias') || labels.includes('Change Alias'))
-    assert(labels.includes('Remove alias') || labels.includes('Remove Alias'))
+    assert(
+      labels.includes('Rename Worktree') || labels.includes('Rename worktree')
+    )
     assert(!labels.includes('Change group name'))
     assert(!labels.includes('Change Group Name'))
     assert(!labels.includes('Restore group name'))

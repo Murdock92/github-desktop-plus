@@ -38,21 +38,25 @@ export class RenameWorktreeDialog extends React.Component<
   }
 
   private onSubmit = async () => {
-    const { worktreePath, repository, onDismissed } = this.props
+    const { worktreePath, repository, dispatcher, onDismissed } = this.props
     const { newName } = this.state
     const newPath = Path.join(Path.dirname(worktreePath), newName)
 
     this.setState({ renaming: true })
 
+    const storedRepo = await dispatcher.getRepositoryForPath(worktreePath)
+
     try {
       await moveWorktree(repository, worktreePath, newPath)
+      if (storedRepo !== null) {
+        await dispatcher.updateRepositoryPath(storedRepo, newPath)
+      }
     } catch (e) {
-      this.props.dispatcher.postError(e)
-      this.setState({ renaming: false })
+      dispatcher.postError(e)
       return
+    } finally {
+      this.setState({ renaming: false })
     }
-
-    this.setState({ renaming: false })
     onDismissed()
   }
 

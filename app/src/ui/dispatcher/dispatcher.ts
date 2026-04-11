@@ -1872,7 +1872,7 @@ export class Dispatcher {
   }
 
   /** Update the repository's path. */
-  private async updateRepositoryPath(
+  public async updateRepositoryPath(
     repository: Repository,
     path: string
   ): Promise<void> {

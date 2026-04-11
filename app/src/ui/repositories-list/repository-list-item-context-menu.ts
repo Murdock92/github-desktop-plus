@@ -31,6 +31,7 @@ interface IRepositoryListItemContextMenuConfig {
   onRemoveLinkedWorktree?: () => void
   onPruneStaleWorktrees?: () => void
   onAddNewWorktree: (repository: Repository) => void
+  onRenameWorktree?: (repository: Repository) => void
   onChangeRepositoryAlias: (repository: Repository) => void
   onRemoveRepositoryAlias: (repository: Repository) => void
   onChangeRepositoryGroupName: (repository: Repository) => void
@@ -181,11 +182,17 @@ const buildAliasMenuItems = (
 ): ReadonlyArray<IMenuItem> => {
   const { repository } = config
 
-  if (
-    !(repository instanceof Repository) ||
-    config.isVirtualLinkedWorktreeRow
-  ) {
+  if (!(repository instanceof Repository)) {
     return []
+  }
+
+  if (config.isLinkedWorktreeRow || config.isVirtualLinkedWorktreeRow) {
+    return [
+      {
+        label: __DARWIN__ ? `Rename Worktree` : `Rename worktree`,
+        action: () => config.onRenameWorktree?.(repository),
+      },
+    ]
   }
 
   const verb = repository.alias == null ? 'Create' : 'Change'

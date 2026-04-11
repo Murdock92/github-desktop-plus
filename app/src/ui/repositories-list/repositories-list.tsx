@@ -491,6 +491,7 @@ export class RepositoriesList extends React.Component<
       isPrunableWorktreeRow: item.isPrunableWorktree,
       externalEditorLabel: this.getExternalEditorLabel(item.repository),
       onAddNewWorktree: this.onAddNewWorktree,
+      onRenameWorktree: this.onRenameWorktree,
       onChangeRepositoryAlias: this.onChangeRepositoryAlias,
       onRemoveRepositoryAlias: this.onRemoveRepositoryAlias,
       onChangeRepositoryGroupName: this.onChangeRepositoryGroupName,
@@ -697,6 +698,14 @@ export class RepositoriesList extends React.Component<
     this.props.dispatcher.showPopup({
       type: PopupType.AddWorktree,
       repository,
+    })
+  }
+
+  private onRenameWorktree = (repository: Repository) => {
+    this.props.dispatcher.showPopup({
+      type: PopupType.RenameWorktree,
+      repository,
+      worktreePath: repository.path,
     })
   }
 
