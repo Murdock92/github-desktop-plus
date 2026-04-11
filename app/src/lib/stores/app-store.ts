@@ -7496,13 +7496,10 @@ export class AppStore extends TypedBaseStore<IAppState> {
           ? matchExistingRepository(repositories, addedRepo.mainWorktreePath)
           : undefined
 
-        if (
-          mainWorktreeRepo !== undefined &&
-          isRepositoryWithGitHubRepository(mainWorktreeRepo)
-        ) {
-          addedRepo = await this.repositoriesStore.setGitHubRepository(
+        if (mainWorktreeRepo !== undefined) {
+          addedRepo = await this.repositoriesStore.inheritConfiguration(
             addedRepo,
-            mainWorktreeRepo.gitHubRepository
+            mainWorktreeRepo
           )
         }
 
