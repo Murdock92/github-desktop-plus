@@ -2175,8 +2175,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
   /** This shouldn't be called directly. See `Dispatcher`. */
   public async _selectRepository(
     repository: Repository | CloningRepository | null,
-    persistSelection: boolean = true,
-    followPreferredWorktree: boolean = true
+    persistSelection: boolean = true
   ): Promise<Repository | null> {
     const previouslySelectedRepository = this.selectedRepository
 
@@ -2212,7 +2211,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
     // When returning to a repository that has worktrees, restore the
     // previously active linked worktree so the user doesn't always land
     // on the main worktree after switching repos.
-    if (followPreferredWorktree && !repository.isLinkedWorktree) {
+    // Disable this behavior if "Show worktrees in repository list" is enabled.
+    if (!this.showWorktreesInSidebar && !repository.isLinkedWorktree) {
       const repoPath = normalizePath(repository.path)
       const preferredPath = getPreferredWorktreePath(repoPath)
 
