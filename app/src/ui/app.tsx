@@ -3270,7 +3270,7 @@ export class App extends React.Component<IAppProps, IAppState> {
     if (repository) {
       const alias = repository instanceof Repository ? repository.alias : null
       icon = iconForRepository(repository)
-      title = alias ?? repository.name
+      title = (alias ?? repository.name) + this.getWorktreeSuffix(repository)
     } else if (this.state.repositories.length > 0) {
       icon = octicons.repo
       title = __DARWIN__ ? 'Select a Repository' : 'Select a repository'
@@ -3317,6 +3317,21 @@ export class App extends React.Component<IAppProps, IAppState> {
         enableFocusTrap={enableFocusTrap}
       />
     )
+  }
+
+  private getWorktreeSuffix(
+    repository: Repository | CloningRepository
+  ): string {
+    // If the worktrees dropdown is enabled, there is no need to add a suffix to the repository name
+    if (
+      this.state.showWorktrees ||
+      !(repository instanceof Repository) ||
+      !repository.isLinkedWorktree
+    ) {
+      return ''
+    }
+    const worktreeName = Path.basename(repository.path)
+    return ` (${worktreeName})`
   }
 
   private onRepositoryToolbarButtonContextMenu = () => {
