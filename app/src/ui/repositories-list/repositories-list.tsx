@@ -29,7 +29,6 @@ import { IAheadBehind } from '../../models/branch'
 import { ShowBranchNameInRepoListSetting } from '../../models/show-branch-name-in-repo-list'
 import { normalizePath } from '../../lib/helpers/path'
 import { ClickSource } from '../lib/list'
-import { getRepositoryType } from '../../lib/git/rev-parse'
 import { FoldoutType } from '../../lib/app-state'
 import { pruneWorktrees } from '../../lib/git/worktree'
 import { getEditorOverrideLabel } from '../../models/editor-override'
@@ -397,13 +396,14 @@ export class RepositoriesList extends React.Component<
       return
     }
 
-    const repositoryType = await getRepositoryType(worktreePath)
-    if (repositoryType.kind !== 'regular') {
-      throw new Error(`${worktreePath} isn't a Git repository.`)
+    const addedRepos = await this.props.dispatcher.addRepositories(
+      [worktreePath],
+      item.sourceRepository.login
+    )
+    if (addedRepos.length > 0) {
+      await this.props.dispatcher.selectRepository(addedRepos[0])
+      await this.props.dispatcher.closeFoldout(FoldoutType.Repository)
     }
-
-    await this.props.dispatcher.selectRepository(item.repository, false)
-    await this.props.dispatcher.closeFoldout(FoldoutType.Repository)
   }
 
   private onRemoveLinkedWorktree = (item: IRepositoryListItem) => {
