@@ -140,10 +140,7 @@ export class Appearance extends React.Component<
     event: React.FormEvent<HTMLInputElement>
   ) => {
     const show = event.currentTarget.checked
-    this.setState({
-      showWorktrees: show,
-      showWorktreesInSidebar: show ? this.state.showWorktreesInSidebar : false,
-    })
+    this.setState({ showWorktrees: show })
     this.props.onShowWorktreesChanged(show)
   }
 
@@ -390,17 +387,15 @@ export class Appearance extends React.Component<
             }
             onChange={this.onShowWorktreesChanged}
           />
-          {this.state.showWorktrees && (
-            <Checkbox
-              label="Show worktrees in repository sidebar"
-              value={
-                this.state.showWorktreesInSidebar
-                  ? CheckboxValue.On
-                  : CheckboxValue.Off
-              }
-              onChange={this.onShowWorktreesInSidebarChanged}
-            />
-          )}
+          <Checkbox
+            label="Show worktrees in repository sidebar"
+            value={
+              this.state.showWorktreesInSidebar
+                ? CheckboxValue.On
+                : CheckboxValue.Off
+            }
+            onChange={this.onShowWorktreesInSidebarChanged}
+          />
         </div>
         <div className="advanced-section">
           <h2>{'Commit list'}</h2>

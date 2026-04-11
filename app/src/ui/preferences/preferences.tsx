@@ -900,12 +900,7 @@ export class Preferences extends React.Component<
   }
 
   private onShowWorktreesChanged = (showWorktrees: boolean) => {
-    this.setState(state => ({
-      showWorktrees,
-      showWorktreesInSidebar: showWorktrees
-        ? state.showWorktreesInSidebar
-        : false,
-    }))
+    this.setState({ showWorktrees })
   }
 
   private onShowWorktreesInSidebarChanged = (

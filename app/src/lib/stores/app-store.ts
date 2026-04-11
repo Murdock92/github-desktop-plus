@@ -784,8 +784,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
     this.showRecentRepositories = getBoolean(showRecentRepositoriesKey) ?? true
     this.showWorktrees = getBoolean(showWorktreesKey) ?? false
-    this.showWorktreesInSidebar =
-      this.showWorktrees && (getBoolean(showWorktreesInSidebarKey) ?? false)
+    this.showWorktreesInSidebar = getBoolean(showWorktreesInSidebarKey) ?? false
     this.showCompareTab = getBoolean(showCompareTabKey, showCompareTabDefault)
 
     this.repositoryIndicatorUpdater = new RepositoryIndicatorUpdater(
@@ -4413,21 +4412,12 @@ export class AppStore extends TypedBaseStore<IAppState> {
     }
     setBoolean(showWorktreesKey, showWorktrees)
     this.showWorktrees = showWorktrees
-    if (!showWorktrees && this.showWorktreesInSidebar) {
-      setBoolean(showWorktreesInSidebarKey, false)
-      this.showWorktreesInSidebar = false
-      this.lastSidebarWorktreeRefreshAt.clear()
-    }
     this.updateResizableConstraints()
     this.emitUpdate()
   }
 
   public _setShowWorktreesInSidebar(showWorktreesInSidebar: boolean) {
     if (this.showWorktreesInSidebar === showWorktreesInSidebar) {
-      return
-    }
-
-    if (showWorktreesInSidebar && !this.showWorktrees) {
       return
     }
 
