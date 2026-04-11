@@ -3325,6 +3325,13 @@ export class App extends React.Component<IAppProps, IAppState> {
       return
     }
 
+    const onAddNewWorktree = (repository: Repository) => {
+      this.props.dispatcher.showPopup({
+        type: PopupType.AddWorktree,
+        repository,
+      })
+    }
+
     const onChangeRepositoryAlias = (repository: Repository) => {
       this.props.dispatcher.showPopup({
         type: PopupType.ChangeRepositoryAlias,
@@ -3354,7 +3361,9 @@ export class App extends React.Component<IAppProps, IAppState> {
       onOpenInExternalEditor: this.openInExternalEditor,
       askForConfirmationOnRemoveRepository:
         this.state.askForConfirmationOnRepositoryRemoval,
+      showWorktreesInSidebar: this.state.showWorktreesInSidebar,
       externalEditorLabel: this.getExternalEditorLabel(repository),
+      onAddNewWorktree: onAddNewWorktree,
       onChangeRepositoryAlias: onChangeRepositoryAlias,
       onRemoveRepositoryAlias: onRemoveRepositoryAlias,
       onChangeRepositoryGroupName: onChangeRepositoryGroupName,

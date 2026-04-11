@@ -18,6 +18,7 @@ interface IRepositoryListItemContextMenuConfig {
   shellLabel: string | undefined
   externalEditorLabel: string | undefined
   askForConfirmationOnRemoveRepository: boolean
+  showWorktreesInSidebar: boolean
   readonly isLinkedWorktreeRow?: boolean
   readonly isVirtualLinkedWorktreeRow?: boolean
   readonly isPrunableWorktreeRow?: boolean
@@ -29,6 +30,7 @@ interface IRepositoryListItemContextMenuConfig {
   onRemoveRepository: (repository: Repositoryish) => void
   onRemoveLinkedWorktree?: () => void
   onPruneStaleWorktrees?: () => void
+  onAddNewWorktree: (repository: Repository) => void
   onChangeRepositoryAlias: (repository: Repository) => void
   onRemoveRepositoryAlias: (repository: Repository) => void
   onChangeRepositoryGroupName: (repository: Repository) => void
@@ -42,9 +44,11 @@ export const generateRepositoryListContextMenu = (
   const { repository } = config
   const isLinkedWorktreeRow = config.isLinkedWorktreeRow ?? false
   const isPrunableWorktreeRow = config.isPrunableWorktreeRow ?? false
-  const aliasMenuItems = buildAliasMenuItems(config)
-  const groupNameMenuItems = buildGroupNameMenuItems(config)
-  const identityMenuItems = [...aliasMenuItems, ...groupNameMenuItems]
+  const identityMenuItems = [
+    ...buildNewWorkreeMenuItems(config),
+    ...buildAliasMenuItems(config),
+    ...buildGroupNameMenuItems(config),
+  ]
   const missing = repository instanceof Repository && repository.missing
   const isGitHub =
     repository instanceof Repository &&
@@ -153,6 +157,23 @@ function getViewOnBrowserLabel(repoType: RepoType | null) {
     default:
       return 'View in your browser'
   }
+}
+
+const buildNewWorkreeMenuItems = (
+  config: IRepositoryListItemContextMenuConfig
+): ReadonlyArray<IMenuItem> => {
+  const { repository } = config
+
+  if (!config.showWorktreesInSidebar || !(repository instanceof Repository)) {
+    return []
+  }
+
+  return [
+    {
+      label: __DARWIN__ ? 'Add New Worktree' : 'Add new worktree',
+      action: () => config.onAddNewWorktree(repository),
+    },
+  ]
 }
 
 const buildAliasMenuItems = (

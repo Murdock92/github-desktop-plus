@@ -155,7 +155,7 @@ export class WorktreeDropdown extends React.Component<
     })
   }
 
-  private onCreateNewWorktree = () => {
+  private onAddNewWorktree = () => {
     this.props.dispatcher.closeFoldout(FoldoutType.Worktree)
     this.props.dispatcher.showPopup({
       type: PopupType.AddWorktree,
@@ -181,7 +181,7 @@ export class WorktreeDropdown extends React.Component<
         filterText={this.state.filterText}
         onFilterTextChanged={this.onFilterTextChanged}
         canCreateNewWorktree={true}
-        onCreateNewWorktree={this.onCreateNewWorktree}
+        onAddNewWorktree={this.onAddNewWorktree}
         onWorktreeContextMenu={this.onWorktreeContextMenu}
       />
     )

@@ -458,8 +458,12 @@ export class RepositoriesList extends React.Component<
       return
     }
 
-    await pruneWorktrees(repository)
-    await this.props.dispatcher.refreshRepository(repository)
+    try {
+      await pruneWorktrees(repository)
+      await this.props.dispatcher.refreshRepository(repository)
+    } catch (error) {
+      this.props.dispatcher.postError(error)
+    }
   }
 
   private onItemContextMenu = (
@@ -478,6 +482,7 @@ export class RepositoriesList extends React.Component<
       onOpenInExternalEditor: this.props.onOpenInExternalEditor,
       askForConfirmationOnRemoveRepository:
         this.props.askForConfirmationOnRemoveRepository,
+      showWorktreesInSidebar: this.props.showWorktreesInSidebar,
       isLinkedWorktreeRow:
         item.isVirtualLinkedWorktree ||
         (item.repository instanceof Repository &&
@@ -485,6 +490,7 @@ export class RepositoriesList extends React.Component<
       isVirtualLinkedWorktreeRow: item.isVirtualLinkedWorktree,
       isPrunableWorktreeRow: item.isPrunableWorktree,
       externalEditorLabel: this.getExternalEditorLabel(item.repository),
+      onAddNewWorktree: this.onAddNewWorktree,
       onChangeRepositoryAlias: this.onChangeRepositoryAlias,
       onRemoveRepositoryAlias: this.onRemoveRepositoryAlias,
       onChangeRepositoryGroupName: this.onChangeRepositoryGroupName,
@@ -494,9 +500,7 @@ export class RepositoriesList extends React.Component<
       shellLabel: this.props.shellLabel,
       onCopyRepoPath: path => this.props.dispatcher.copyPathToClipboard(path),
       onPruneStaleWorktrees: () => {
-        void this.onPruneStaleWorktrees(item).catch(error =>
-          this.props.dispatcher.postError(error)
-        )
+        this.onPruneStaleWorktrees(item)
       },
     })
 
@@ -687,6 +691,13 @@ export class RepositoriesList extends React.Component<
 
   private onCreateNewRepository = () => {
     this.props.dispatcher.showPopup({ type: PopupType.CreateRepository })
+  }
+
+  private onAddNewWorktree = (repository: Repository) => {
+    this.props.dispatcher.showPopup({
+      type: PopupType.AddWorktree,
+      repository,
+    })
   }
 
   private onChangeRepositoryAlias = (repository: Repository) => {
