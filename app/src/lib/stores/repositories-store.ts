@@ -336,16 +336,20 @@ export class RepositoriesStore extends TypedBaseStore<
   }
 
   /**
-   * Update the group name for the specified repository.
+   * Update the group name for a list of repositories in a single transaction.
    *
-   * @param repository  The repository to update.
-   * @param groupName       The new group name to use.
+   * @param repositories  The repositories to update (typically a worktree family).
+   * @param groupName     The new group name to use.
    */
   public async updateRepositoryGroupName(
-    repository: Repository,
+    repositories: ReadonlyArray<Repository>,
     groupName: string | null
   ): Promise<void> {
-    await this.db.repositories.update(repository.id, { groupName })
+    await this.db.transaction('rw', this.db.repositories, () =>
+      Promise.all(
+        repositories.map(r => this.db.repositories.update(r.id, { groupName }))
+      )
+    )
 
     this.emitUpdatedRepositories()
   }

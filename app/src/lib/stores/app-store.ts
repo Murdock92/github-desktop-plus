@@ -5149,8 +5149,18 @@ export class AppStore extends TypedBaseStore<IAppState> {
     repository: Repository,
     newGroupName: string | null
   ): Promise<void> {
+    const mainPath = normalizePath(
+      repository.isLinkedWorktree
+        ? repository.mainWorktreePath
+        : repository.path
+    )
+    const reposToUpdate = this.repositories.filter(
+      r =>
+        normalizePath(r.path) === mainPath ||
+        (r.isLinkedWorktree && normalizePath(r.mainWorktreePath) === mainPath)
+    )
     return this.repositoriesStore.updateRepositoryGroupName(
-      repository,
+      reposToUpdate,
       newGroupName
     )
   }
