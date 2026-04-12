@@ -27,6 +27,7 @@ import { OkCancelButtonGroup } from '../dialog/ok-cancel-button-group'
 import { Integrations } from './integrations'
 import { BranchSortOrder } from '../../models/branch-sort-order'
 import { CommitDateDisplay } from '../../models/commit-date-display'
+import { DiffFontFamily } from '../../models/diff-font'
 import {
   UncommittedChangesStrategy,
   defaultUncommittedChangesStrategy,
@@ -93,6 +94,8 @@ interface IPreferencesProps {
   readonly selectedShell: Shell
   readonly selectedTheme: ApplicationTheme
   readonly selectedTabSize: number
+  readonly selectedDiffFontSize: number
+  readonly selectedDiffFontFamily: DiffFontFamily
   readonly useCustomEditor: boolean
   readonly customEditor: ICustomIntegration | null
   readonly useCustomShell: boolean
@@ -170,6 +173,8 @@ interface IPreferencesState {
 
   readonly initiallySelectedTheme: ApplicationTheme
   readonly initiallySelectedTabSize: number
+  readonly initiallySelectedDiffFontSize: number
+  readonly initiallySelectedDiffFontFamily: DiffFontFamily
 
   readonly isLoadingGitConfig: boolean
 
@@ -252,6 +257,8 @@ export class Preferences extends React.Component<
       hideWindowOnQuit: this.props.hideWindowOnQuit,
       initiallySelectedTheme: this.props.selectedTheme,
       initiallySelectedTabSize: this.props.selectedTabSize,
+      initiallySelectedDiffFontSize: this.props.selectedDiffFontSize,
+      initiallySelectedDiffFontFamily: this.props.selectedDiffFontFamily,
       isLoadingGitConfig: true,
       underlineLinks: this.props.underlineLinks,
       showDiffCheckMarks: this.props.showDiffCheckMarks,
@@ -342,6 +349,22 @@ export class Preferences extends React.Component<
     }
     if (this.state.initiallySelectedTabSize !== this.props.selectedTabSize) {
       this.onSelectedTabSizeChanged(this.state.initiallySelectedTabSize)
+    }
+    if (
+      this.state.initiallySelectedDiffFontSize !==
+      this.props.selectedDiffFontSize
+    ) {
+      this.onSelectedDiffFontSizeChanged(
+        this.state.initiallySelectedDiffFontSize
+      )
+    }
+    if (
+      this.state.initiallySelectedDiffFontFamily !==
+      this.props.selectedDiffFontFamily
+    ) {
+      this.onSelectedDiffFontFamilyChanged(
+        this.state.initiallySelectedDiffFontFamily
+      )
     }
 
     this.props.onDismissed()
@@ -588,6 +611,12 @@ export class Preferences extends React.Component<
             onSelectedThemeChanged={this.onSelectedThemeChanged}
             selectedTabSize={this.props.selectedTabSize}
             onSelectedTabSizeChanged={this.onSelectedTabSizeChanged}
+            selectedDiffFontSize={this.props.selectedDiffFontSize}
+            onSelectedDiffFontSizeChanged={this.onSelectedDiffFontSizeChanged}
+            selectedDiffFontFamily={this.props.selectedDiffFontFamily}
+            onSelectedDiffFontFamilyChanged={
+              this.onSelectedDiffFontFamilyChanged
+            }
             titleBarStyle={this.props.titleBarStyle}
             onTitleBarStyleChanged={this.onTitleBarStyleChanged}
             showRecentRepositories={this.props.showRecentRepositories}
@@ -887,6 +916,16 @@ export class Preferences extends React.Component<
 
   private onSelectedTabSizeChanged = (tabSize: number) => {
     this.props.dispatcher.setSelectedTabSize(tabSize)
+  }
+
+  private onSelectedDiffFontSizeChanged = (diffFontSize: number) => {
+    this.props.dispatcher.setSelectedDiffFontSize(diffFontSize)
+  }
+
+  private onSelectedDiffFontFamilyChanged = (
+    diffFontFamily: DiffFontFamily
+  ) => {
+    this.props.dispatcher.setSelectedDiffFontFamily(diffFontFamily)
   }
 
   private onTitleBarStyleChanged = (titleBarStyle: TitleBarStyle) => {

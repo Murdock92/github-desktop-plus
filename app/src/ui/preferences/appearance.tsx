@@ -17,12 +17,19 @@ import { parseEnumValue } from '../../lib/enum'
 import { assertNever } from '../../lib/fatal-error'
 import { BranchSortOrder } from '../../models/branch-sort-order'
 import { CommitDateDisplay } from '../../models/commit-date-display'
+import { availableDiffFontSizes, defaultDiffFontSize, DiffFontFamily, getDiffFontFamilyLabel } from '../../models/diff-font'
 
 interface IAppearanceProps {
   readonly selectedTheme: ApplicationTheme
   readonly onSelectedThemeChanged: (theme: ApplicationTheme) => void
   readonly selectedTabSize: number
   readonly onSelectedTabSizeChanged: (tabSize: number) => void
+  readonly selectedDiffFontSize: number
+  readonly onSelectedDiffFontSizeChanged: (diffFontSize: number) => void
+  readonly selectedDiffFontFamily: DiffFontFamily
+  readonly onSelectedDiffFontFamilyChanged: (
+    diffFontFamily: DiffFontFamily
+  ) => void
   readonly titleBarStyle: TitleBarStyle
   readonly onTitleBarStyleChanged: (titleBarStyle: TitleBarStyle) => void
   readonly showRecentRepositories: boolean
@@ -46,6 +53,8 @@ interface IAppearanceProps {
 interface IAppearanceState {
   readonly selectedTheme: ApplicationTheme | null
   readonly selectedTabSize: number
+  readonly selectedDiffFontSize: number
+  readonly selectedDiffFontFamily: DiffFontFamily
   readonly titleBarStyle: TitleBarStyle
   readonly showRecentRepositories: boolean
   readonly showWorktrees: boolean
@@ -76,6 +85,8 @@ export class Appearance extends React.Component<
     this.state = {
       selectedTheme: usePropTheme ? props.selectedTheme : null,
       selectedTabSize: props.selectedTabSize,
+      selectedDiffFontSize: props.selectedDiffFontSize,
+      selectedDiffFontFamily: props.selectedDiffFontFamily,
       titleBarStyle: props.titleBarStyle,
       showRecentRepositories: props.showRecentRepositories,
       showWorktrees: props.showWorktrees,
@@ -92,6 +103,8 @@ export class Appearance extends React.Component<
     if (
       prevProps.selectedTheme === this.props.selectedTheme &&
       prevProps.selectedTabSize === this.props.selectedTabSize &&
+      prevProps.selectedDiffFontSize === this.props.selectedDiffFontSize &&
+      prevProps.selectedDiffFontFamily === this.props.selectedDiffFontFamily &&
       prevProps.showWorktrees === this.props.showWorktrees &&
       prevProps.showWorktreesInSidebar === this.props.showWorktreesInSidebar &&
       prevProps.showCompareTab === this.props.showCompareTab
@@ -108,10 +121,14 @@ export class Appearance extends React.Component<
       : await getCurrentlyAppliedTheme()
 
     const selectedTabSize = this.props.selectedTabSize
+    const selectedDiffFontSize = this.props.selectedDiffFontSize
+    const selectedDiffFontFamily = this.props.selectedDiffFontFamily
 
     this.setState({
       selectedTheme,
       selectedTabSize,
+      selectedDiffFontSize,
+      selectedDiffFontFamily,
       showWorktrees: this.props.showWorktrees,
       showWorktreesInSidebar: this.props.showWorktreesInSidebar,
       showCompareTab: this.props.showCompareTab,
@@ -121,7 +138,12 @@ export class Appearance extends React.Component<
   private initializeSelectedTheme = async () => {
     const selectedTheme = await getCurrentlyAppliedTheme()
     const selectedTabSize = this.props.selectedTabSize
-    this.setState({ selectedTheme, selectedTabSize })
+    this.setState({
+      selectedTheme,
+      selectedTabSize,
+      selectedDiffFontSize: this.props.selectedDiffFontSize,
+      selectedDiffFontFamily: this.props.selectedDiffFontFamily,
+    })
   }
 
   private onSelectedThemeChanged = (theme: ApplicationTheme) => {
@@ -164,6 +186,23 @@ export class Appearance extends React.Component<
     event: React.FormEvent<HTMLSelectElement>
   ) => {
     this.props.onSelectedTabSizeChanged(parseInt(event.currentTarget.value))
+  }
+
+  private onSelectedDiffFontSizeChanged = (
+    event: React.FormEvent<HTMLSelectElement>
+  ) => {
+    this.props.onSelectedDiffFontSizeChanged(
+      parseInt(event.currentTarget.value)
+    )
+  }
+
+  private onSelectedDiffFontFamilyChanged = (
+    event: React.FormEvent<HTMLSelectElement>
+  ) => {
+    const value = parseEnumValue(DiffFontFamily, event.currentTarget.value)
+    if (value !== undefined) {
+      this.props.onSelectedDiffFontFamilyChanged(value)
+    }
   }
 
   private onSelectChanged = (event: React.FormEvent<HTMLSelectElement>) => {
@@ -412,12 +451,39 @@ export class Appearance extends React.Component<
     )
   }
 
-  private renderSelectedTabSize() {
+  private renderDiffSettings() {
     const availableTabSizes: number[] = [1, 2, 3, 4, 5, 6, 8, 10, 12]
+    const availableDiffFontFamilies = Object.values(
+      DiffFontFamily
+    ) as ReadonlyArray<DiffFontFamily>
 
     return (
       <div className="advanced-section">
         <h2 id="diff-heading">{'Diff'}</h2>
+
+        <Select
+          value={this.state.selectedDiffFontSize.toString()}
+          label={__DARWIN__ ? 'Font Size' : 'Font size'}
+          onChange={this.onSelectedDiffFontSizeChanged}
+        >
+          {availableDiffFontSizes.map(n => (
+            <option key={n} value={n}>
+              {n === defaultDiffFontSize ? `${n} (default)` : n}
+            </option>
+          ))}
+        </Select>
+
+        <Select
+          value={this.state.selectedDiffFontFamily}
+          label="Font"
+          onChange={this.onSelectedDiffFontFamilyChanged}
+        >
+          {availableDiffFontFamilies.map(fontFamily => (
+            <option key={fontFamily} value={fontFamily}>
+              {getDiffFontFamilyLabel(fontFamily)}
+            </option>
+          ))}
+        </Select>
 
         <Select
           value={this.state.selectedTabSize.toString()}
@@ -442,7 +508,7 @@ export class Appearance extends React.Component<
         {this.renderBranchSortOrder()}
         {this.renderCommitDateDisplay()}
         {this.renderWorktreeVisibility()}
-        {this.renderSelectedTabSize()}
+        {this.renderDiffSettings()}
         {this.renderTitleBarStyleDropdown()}
       </DialogContent>
     )

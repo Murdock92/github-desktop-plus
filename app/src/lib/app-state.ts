@@ -45,6 +45,7 @@ import { ShowBranchNameInRepoListSetting } from '../models/show-branch-name-in-r
 import { CopyPathNormalization } from '../models/copy-path-normalization'
 import { BranchSortOrder } from '../models/branch-sort-order'
 import { CommitDateDisplay } from '../models/commit-date-display'
+import { DiffFontFamily } from '../models/diff-font'
 import { DragElement } from '../models/drag-drop'
 import { ILastThankYou } from '../models/last-thank-you'
 import {
@@ -312,6 +313,12 @@ export interface IAppState {
 
   /** The selected tab size preference */
   readonly selectedTabSize: number
+
+  /** The selected font size preference for text diffs */
+  readonly selectedDiffFontSize: number
+
+  /** The selected font family preference for text diffs */
+  readonly selectedDiffFontFamily: DiffFontFamily
 
   /** The selected title bar style for the application */
   readonly titleBarStyle: TitleBarStyle
