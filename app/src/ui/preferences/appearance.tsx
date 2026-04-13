@@ -17,7 +17,12 @@ import { parseEnumValue } from '../../lib/enum'
 import { assertNever } from '../../lib/fatal-error'
 import { BranchSortOrder } from '../../models/branch-sort-order'
 import { CommitDateDisplay } from '../../models/commit-date-display'
-import { availableDiffFontSizes, defaultDiffFontSize, DiffFontFamily, getDiffFontFamilyLabel } from '../../models/diff-font'
+import {
+  availableDiffFontSizes,
+  defaultDiffFontSize,
+  DiffFontFamily,
+  getDiffFontFamilyLabel,
+} from '../../models/diff-font'
 
 interface IAppearanceProps {
   readonly selectedTheme: ApplicationTheme

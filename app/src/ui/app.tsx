@@ -3877,11 +3877,7 @@ export class App extends React.Component<IAppProps, IAppState> {
     } as React.CSSProperties
 
     return (
-      <div
-        id="desktop-app-chrome"
-        className={className}
-        style={appStyle}
-      >
+      <div id="desktop-app-chrome" className={className} style={appStyle}>
         <AppTheme theme={currentTheme} />
         {this.renderTitlebar()}
         {this.state.showWelcomeFlow

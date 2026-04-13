@@ -2697,10 +2697,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
     this.currentTheme = await getCurrentlyAppliedTheme()
 
     this.selectedTabSize = getNumber(tabSizeKey, tabSizeDefault)
-    this.selectedDiffFontSize = getNumber(
-      diffFontSizeKey,
-      defaultDiffFontSize
-    )
+    this.selectedDiffFontSize = getNumber(diffFontSizeKey, defaultDiffFontSize)
     this.selectedDiffFontFamily =
       getEnum(diffFontFamilyKey, DiffFontFamily) ?? defaultDiffFontFamily
 
