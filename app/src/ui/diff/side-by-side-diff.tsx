@@ -234,8 +234,15 @@ export class SideBySideDiff extends React.Component<
   ISideBySideDiffProps,
   ISideBySideDiffState
 > {
+  private static getDiffStyleKey(root: HTMLElement): string {
+    const fontSize = root.style.getPropertyValue('--diff-font-size')
+    const fontFamily = root.style.getPropertyValue('--diff-font-family')
+    return `${fontSize}|${fontFamily}`
+  }
+
   private virtualListRef = React.createRef<List>()
   private diffContainer: HTMLDivElement | null = null
+  private styleObserver: MutationObserver | null = null
   private lastDiffStyleKey = ''
 
   /** Diff to restore when "Collapse all expanded lines" option is used */
@@ -279,7 +286,7 @@ export class SideBySideDiff extends React.Component<
 
   public componentDidMount() {
     this.initDiffSyntaxMode()
-    this.lastDiffStyleKey = this.getCurrentDiffStyleKey()
+    this.setupStyleObserver()
 
     window.addEventListener('keydown', this.onWindowKeyDown)
 
@@ -418,6 +425,7 @@ export class SideBySideDiff extends React.Component<
   }
 
   public componentWillUnmount() {
+    this.teardownStyleObserver()
     window.removeEventListener('keydown', this.onWindowKeyDown)
     document.removeEventListener('mouseup', this.onEndSelection)
     document.removeEventListener('find-text', this.showSearch)
@@ -433,8 +441,6 @@ export class SideBySideDiff extends React.Component<
     prevProps: ISideBySideDiffProps,
     prevState: ISideBySideDiffState
   ) {
-    this.invalidateMeasurementsIfDiffStyleChanged()
-
     if (
       !highlightParametersEqual(this.props, prevProps, this.state, prevState)
     ) {
@@ -578,29 +584,40 @@ export class SideBySideDiff extends React.Component<
     this.diffContainer = ref
   }
 
-  private getCurrentDiffStyleKey() {
-    if (this.diffContainer === null) {
-      return ''
-    }
-
-    const styles = getComputedStyle(this.diffContainer)
-    const diffFontSize = styles.getPropertyValue('--diff-font-size').trim()
-    const diffFontFamily = styles.getPropertyValue('--diff-font-family').trim()
-    const diffLineHeight = styles.getPropertyValue('--diff-line-height').trim()
-
-    return `${diffFontSize}|${diffFontFamily}|${diffLineHeight}`
-  }
-
-  private invalidateMeasurementsIfDiffStyleChanged() {
-    const currentDiffStyleKey = this.getCurrentDiffStyleKey()
-    if (currentDiffStyleKey === this.lastDiffStyleKey) {
+  private setupStyleObserver() {
+    const root = document.getElementById('desktop-app-chrome')
+    if (root === null) {
       return
     }
 
-    this.lastDiffStyleKey = currentDiffStyleKey
-    this.rowSelectableGroupStaticDataCache.clear()
-    this.clearListRowsHeightCache()
-    this.virtualListRef.current?.recomputeRowHeights()
+    this.lastDiffStyleKey = SideBySideDiff.getDiffStyleKey(root)
+
+    this.styleObserver = new MutationObserver(mutations => {
+      const target = mutations[0]?.target as HTMLElement | undefined
+      if (target === undefined) {
+        return
+      }
+
+      const newKey = SideBySideDiff.getDiffStyleKey(target)
+      if (newKey === this.lastDiffStyleKey) {
+        return
+      }
+
+      this.lastDiffStyleKey = newKey
+      this.rowSelectableGroupStaticDataCache.clear()
+      this.clearListRowsHeightCache()
+      this.virtualListRef.current?.recomputeRowHeights()
+    })
+
+    this.styleObserver.observe(root, {
+      attributes: true,
+      attributeFilter: ['style'],
+    })
+  }
+
+  private teardownStyleObserver() {
+    this.styleObserver?.disconnect()
+    this.styleObserver = null
   }
 
   private getCurrentDiffRows() {
