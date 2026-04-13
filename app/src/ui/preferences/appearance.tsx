@@ -19,8 +19,10 @@ import { BranchSortOrder } from '../../models/branch-sort-order'
 import { CommitDateDisplay } from '../../models/commit-date-display'
 import {
   availableDiffFontSizes,
+  defaultDiffFontFamily,
   defaultDiffFontSize,
   DiffFontFamily,
+  getAvailableDiffFontFamilies,
   getDiffFontFamilyLabel,
 } from '../../models/diff-font'
 
@@ -60,6 +62,7 @@ interface IAppearanceState {
   readonly selectedTabSize: number
   readonly selectedDiffFontSize: number
   readonly selectedDiffFontFamily: DiffFontFamily
+  readonly availableDiffFontFamilies: ReadonlyArray<DiffFontFamily>
   readonly titleBarStyle: TitleBarStyle
   readonly showRecentRepositories: boolean
   readonly showWorktrees: boolean
@@ -92,6 +95,10 @@ export class Appearance extends React.Component<
       selectedTabSize: props.selectedTabSize,
       selectedDiffFontSize: props.selectedDiffFontSize,
       selectedDiffFontFamily: props.selectedDiffFontFamily,
+      availableDiffFontFamilies:
+        props.selectedDiffFontFamily === defaultDiffFontFamily
+          ? [defaultDiffFontFamily]
+          : [props.selectedDiffFontFamily, defaultDiffFontFamily],
       titleBarStyle: props.titleBarStyle,
       showRecentRepositories: props.showRecentRepositories,
       showWorktrees: props.showWorktrees,
@@ -102,6 +109,10 @@ export class Appearance extends React.Component<
     if (!usePropTheme) {
       this.initializeSelectedTheme()
     }
+  }
+
+  public componentDidMount() {
+    this.updateAvailableDiffFontFamilies()
   }
 
   public async componentDidUpdate(prevProps: IAppearanceProps) {
@@ -138,6 +149,12 @@ export class Appearance extends React.Component<
       showWorktreesInSidebar: this.props.showWorktreesInSidebar,
       showCompareTab: this.props.showCompareTab,
     })
+
+    if (
+      prevProps.selectedDiffFontFamily !== this.props.selectedDiffFontFamily
+    ) {
+      this.updateAvailableDiffFontFamilies()
+    }
   }
 
   private initializeSelectedTheme = async () => {
@@ -149,6 +166,16 @@ export class Appearance extends React.Component<
       selectedDiffFontSize: this.props.selectedDiffFontSize,
       selectedDiffFontFamily: this.props.selectedDiffFontFamily,
     })
+  }
+
+  private updateAvailableDiffFontFamilies = async () => {
+    const families = await getAvailableDiffFontFamilies()
+    const selected = this.props.selectedDiffFontFamily
+    const available = families.includes(selected)
+      ? families
+      : [selected, ...families]
+
+    this.setState({ availableDiffFontFamilies: available })
   }
 
   private onSelectedThemeChanged = (theme: ApplicationTheme) => {
@@ -204,8 +231,8 @@ export class Appearance extends React.Component<
   private onSelectedDiffFontFamilyChanged = (
     event: React.FormEvent<HTMLSelectElement>
   ) => {
-    const value = parseEnumValue(DiffFontFamily, event.currentTarget.value)
-    if (value !== undefined) {
+    const value = event.currentTarget.value
+    if (value) {
       this.props.onSelectedDiffFontFamilyChanged(value)
     }
   }
@@ -458,9 +485,6 @@ export class Appearance extends React.Component<
 
   private renderDiffSettings() {
     const availableTabSizes: number[] = [1, 2, 3, 4, 5, 6, 8, 10, 12]
-    const availableDiffFontFamilies = Object.values(
-      DiffFontFamily
-    ) as ReadonlyArray<DiffFontFamily>
 
     return (
       <div className="advanced-section">
@@ -483,7 +507,7 @@ export class Appearance extends React.Component<
           label="Font"
           onChange={this.onSelectedDiffFontFamilyChanged}
         >
-          {availableDiffFontFamilies.map(fontFamily => (
+          {this.state.availableDiffFontFamilies.map(fontFamily => (
             <option key={fontFamily} value={fontFamily}>
               {getDiffFontFamilyLabel(fontFamily)}
             </option>
