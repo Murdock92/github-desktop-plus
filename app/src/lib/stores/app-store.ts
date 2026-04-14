@@ -516,6 +516,8 @@ const commitMessageGenerationButtonClickedKey =
 
 export const showChangesFilterKey = 'show-changes-filter'
 export const showChangesFilterDefault = true
+const graphMaxLanesKey = 'graph-max-lanes'
+export const defaultGraphMaxLanes = 8
 
 export class AppStore extends TypedBaseStore<IAppState> {
   private readonly gitStoreCache: GitStoreCache
@@ -682,6 +684,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
   private branchSortOrder: BranchSortOrder = DEFAULT_BRANCH_SORT_ORDER
 
   private commitDateDisplay: CommitDateDisplay = defaultCommitDateDisplay
+
+  private graphMaxLanes: number = defaultGraphMaxLanes
 
   private cachedRepoRulesets = new Map<number, IAPIRepoRuleset>()
 
@@ -1235,6 +1239,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
       showBranchNameInRepoList: this.showBranchNameInRepoList,
       branchSortOrder: this.branchSortOrder,
       commitDateDisplay: this.commitDateDisplay,
+      graphMaxLanes: this.graphMaxLanes,
       updateState: updateStore.state,
       commitMessageGenerationDisclaimerLastSeen:
         this.commitMessageGenerationDisclaimerLastSeen,
@@ -1729,6 +1734,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
         filteredHistoryCommitSHAs: filteredCommits,
         filterText: fromInitialize ? oldState.filterText : '',
         showBranchList: fromInitialize ? oldState.showBranchList : true,
+        mergeBaseSha: fromInitialize ? oldState.mergeBaseSha : null,
       }))
       if (!fromInitialize) {
         this.updateOrSelectFirstCommit(repository, commits)
@@ -1799,6 +1805,20 @@ export class AppStore extends TypedBaseStore<IAppState> {
     }))
 
     const tip = gitStore.tip
+
+    // Compute merge base asynchronously and store it for the graph marker
+    if (tip.kind === TipState.Valid) {
+      getMergeBase(repository, tip.branch.name, comparisonBranch.name)
+        .then(mergeBaseSha => {
+          this.repositoryStateCache.updateCompareState(repository, () => ({
+            mergeBaseSha,
+          }))
+          this.emitUpdate()
+        })
+        .catch(() => {
+          /* non-critical — ignore */
+        })
+    }
 
     const loadingMerge: MergeTreeResult = {
       kind: ComputedAction.Loading,
@@ -2746,6 +2766,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
     this.commitDateDisplay =
       getEnum(commitDateDisplayKey, CommitDateDisplay) ??
       defaultCommitDateDisplay
+
+    this.graphMaxLanes = getNumber(graphMaxLanesKey) ?? defaultGraphMaxLanes
 
     this.commitMessageGenerationDisclaimerLastSeen =
       getNumber(commitMessageGenerationDisclaimerLastSeenKey) ?? null
@@ -4988,8 +5010,9 @@ export class AppStore extends TypedBaseStore<IAppState> {
       repository,
       account
     )
-    const refreshedRepo =
-      await this.repositoryWithRefreshedGitHubRepository(repo)
+    const refreshedRepo = await this.repositoryWithRefreshedGitHubRepository(
+      repo
+    )
     await this._refreshRepository(refreshedRepo)
   }
 
@@ -5642,8 +5665,9 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
   private async fastForwardBranches(repository: Repository) {
     try {
-      const eligibleBranches =
-        await getBranchesDifferingFromUpstream(repository)
+      const eligibleBranches = await getBranchesDifferingFromUpstream(
+        repository
+      )
 
       await fastForwardBranches(repository, eligibleBranches)
     } catch (e) {
@@ -7375,8 +7399,9 @@ export class AppStore extends TypedBaseStore<IAppState> {
     // association is out of date. So try again before we bail on providing an
     // authenticating user.
     if (!account) {
-      updatedRepository =
-        await this.repositoryWithRefreshedGitHubRepository(repository)
+      updatedRepository = await this.repositoryWithRefreshedGitHubRepository(
+        repository
+      )
     }
 
     return fn(updatedRepository)
@@ -9356,6 +9381,14 @@ export class AppStore extends TypedBaseStore<IAppState> {
     if (commitDateDisplay !== this.commitDateDisplay) {
       this.commitDateDisplay = commitDateDisplay
       localStorage.setItem(commitDateDisplayKey, commitDateDisplay)
+      this.emitUpdate()
+    }
+  }
+
+  public _updateGraphMaxLanes(graphMaxLanes: number) {
+    if (graphMaxLanes !== this.graphMaxLanes) {
+      this.graphMaxLanes = graphMaxLanes
+      localStorage.setItem(graphMaxLanesKey, String(graphMaxLanes))
       this.emitUpdate()
     }
   }

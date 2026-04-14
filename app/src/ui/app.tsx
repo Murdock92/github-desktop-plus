@@ -1112,7 +1112,7 @@ export class App extends React.Component<IAppProps, IAppState> {
     if (repository) {
       const repositoryTitle =
         repository instanceof Repository
-          ? (repository.alias ?? repository.name)
+          ? repository.alias ?? repository.name
           : repository.name
       return `${repositoryTitle} - GitHub Desktop`
     }
@@ -1416,7 +1416,7 @@ export class App extends React.Component<IAppProps, IAppState> {
   private get externalEditorLabel() {
     return this.state.useCustomEditor
       ? undefined
-      : (this.state.selectedExternalEditor ?? undefined)
+      : this.state.selectedExternalEditor ?? undefined
   }
 
   private openCurrentRepositoryInExternalEditor() {
@@ -1714,6 +1714,7 @@ export class App extends React.Component<IAppProps, IAppState> {
             showBranchNameInRepoList={this.state.showBranchNameInRepoList}
             branchSortOrder={this.state.branchSortOrder}
             commitDateDisplay={this.state.commitDateDisplay}
+            graphMaxLanes={this.state.graphMaxLanes}
           />
         )
       case PopupType.RepositorySettings: {
@@ -3727,6 +3728,7 @@ export class App extends React.Component<IAppProps, IAppState> {
           gitHubUserStore={this.props.gitHubUserStore}
           branchSortOrder={state.branchSortOrder}
           commitDateDisplay={state.commitDateDisplay}
+          graphMaxLanes={state.graphMaxLanes}
           onViewCommitOnGitHub={this.onViewCommitOnGitHub}
           imageDiffType={state.imageDiffType}
           hideWhitespaceInChangesDiff={state.hideWhitespaceInChangesDiff}

@@ -119,6 +119,9 @@ interface IRepositoryViewProps {
 
   readonly commitDateDisplay: CommitDateDisplay
 
+  /** Maximum graph lane columns to render in the commit graph. */
+  readonly graphMaxLanes: number
+
   /** The user's preference of pull request suggested next action to use **/
   readonly pullRequestSuggestedNextAction?: PullRequestSuggestedNextAction
 
@@ -447,6 +450,7 @@ export class RepositoryView extends React.Component<
         }
         accounts={this.props.accounts}
         allBranches={branchesState.allBranches}
+        graphMaxLanes={this.props.graphMaxLanes}
       />
     )
   }
@@ -506,6 +510,7 @@ export class RepositoryView extends React.Component<
         }
         accounts={this.props.accounts}
         allBranches={branchesState.allBranches}
+        graphMaxLanes={this.props.graphMaxLanes}
       />
     )
   }

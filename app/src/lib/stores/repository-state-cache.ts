@@ -369,6 +369,7 @@ function getInitialRepositoryState(): IRepositoryState {
       filteredHistoryCommitSHAs: [],
       compareCommitSHAs: [],
       shasToHighlight: [],
+      mergeBaseSha: null,
       branches: new Array<Branch>(),
       recentBranches: new Array<Branch>(),
       defaultBranch: null,

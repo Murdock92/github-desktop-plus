@@ -99,6 +99,7 @@ interface IPreferencesProps {
   readonly showBranchNameInRepoList: ShowBranchNameInRepoListSetting
   readonly branchSortOrder: BranchSortOrder
   readonly commitDateDisplay: CommitDateDisplay
+  readonly graphMaxLanes: number
   readonly hideWindowOnQuit: boolean
   readonly onEditGlobalGitConfig: () => void
   readonly underlineLinks: boolean
@@ -153,6 +154,7 @@ interface IPreferencesState {
   readonly showBranchNameInRepoList: ShowBranchNameInRepoListSetting
   readonly branchSortOrder: BranchSortOrder
   readonly commitDateDisplay: CommitDateDisplay
+  readonly graphMaxLanes: number
   readonly hideWindowOnQuit: boolean
 
   readonly initiallySelectedTheme: ApplicationTheme
@@ -231,6 +233,7 @@ export class Preferences extends React.Component<
       showBranchNameInRepoList: this.props.showBranchNameInRepoList,
       branchSortOrder: this.props.branchSortOrder,
       commitDateDisplay: this.props.commitDateDisplay,
+      graphMaxLanes: this.props.graphMaxLanes,
       hideWindowOnQuit: this.props.hideWindowOnQuit,
       initiallySelectedTheme: this.props.selectedTheme,
       initiallySelectedTabSize: this.props.selectedTabSize,
@@ -572,6 +575,8 @@ export class Preferences extends React.Component<
             onBranchSortOrderChanged={this.onBranchSortOrderChanged}
             commitDateDisplay={this.state.commitDateDisplay}
             onCommitDateDisplayChanged={this.onCommitDateDisplayChanged}
+            graphMaxLanes={this.state.graphMaxLanes}
+            onGraphMaxLanesChanged={this.onGraphMaxLanesChanged}
           />
         )
         break
@@ -833,6 +838,10 @@ export class Preferences extends React.Component<
     this.setState({ commitDateDisplay })
   }
 
+  private onGraphMaxLanesChanged = (graphMaxLanes: number) => {
+    this.setState({ graphMaxLanes })
+  }
+
   private onSelectedTabSizeChanged = (tabSize: number) => {
     this.props.dispatcher.setSelectedTabSize(tabSize)
   }
@@ -1041,6 +1050,7 @@ export class Preferences extends React.Component<
     dispatcher.setShowBranchNameInRepoList(this.state.showBranchNameInRepoList)
     dispatcher.setBranchSortOrder(this.state.branchSortOrder)
     dispatcher.setCommitDateDisplay(this.state.commitDateDisplay)
+    dispatcher.setGraphMaxLanes(this.state.graphMaxLanes)
 
     this.props.onDismissed()
   }

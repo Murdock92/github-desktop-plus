@@ -13,6 +13,7 @@ import {
   computeGraphLayout,
   ICommitGraphLayout,
   ICommitGraphInput,
+  ICommitGraphRow,
 } from './commit-graph-layout'
 import { IMenuItem, showContextualMenu } from '../../lib/menu-item'
 import { getDotComAPIEndpoint } from '../../lib/api'
@@ -213,6 +214,15 @@ interface ICommitListProps {
 
   /** All branches (local + remote), used to render branch head labels on the commit graph. */
   readonly allBranches?: ReadonlyArray<Branch>
+
+  /**
+   * SHA of the merge base between the current branch and the comparison
+   * branch, used to render the merge base diamond marker on the graph.
+   */
+  readonly mergeBaseSha?: string | null
+
+  /** Maximum lane columns to render in the commit graph. */
+  readonly graphMaxLanes?: number
 }
 
 interface ICommitListState {
@@ -262,6 +272,65 @@ export class CommitList extends React.Component<
         }
       }
       return map
+    }
+  )
+
+  /**
+   * Build a map from graph colour index → branch/tag names, so that each
+   * SVG lane line can display a native tooltip naming the branch it belongs to.
+   *
+   * The colour index is assigned by the layout engine to each branch lane.
+   * Branch-tip commits carry both a nodeColour (= their lane's colour) and
+   * branch labels, so we can correlate the two.
+   */
+  private laneLabelsByColour = memoizeOne(
+    (
+      graphRows: ReadonlyArray<ICommitGraphRow>,
+      commitSHAs: ReadonlyArray<string>,
+      commitLookup: Map<string, Commit>,
+      branchMap: Map<string, ReadonlyArray<string>>
+    ): Map<number, string> => {
+      const result = new Map<number, string[]>()
+      for (let i = 0; i < commitSHAs.length; i++) {
+        const sha = commitSHAs[i]
+        const row = graphRows[i]
+        if (row === undefined) {
+          continue
+        }
+        const branchNames = branchMap.get(sha)
+        if (branchNames !== undefined && branchNames.length > 0) {
+          const existing = result.get(row.nodeColour)
+          if (existing !== undefined) {
+            for (const name of branchNames) {
+              if (!existing.includes(name)) {
+                existing.push(name)
+              }
+            }
+          } else {
+            result.set(row.nodeColour, [...branchNames])
+          }
+        }
+        // Also map tag names to their lane colour
+        const commit = commitLookup.get(sha)
+        if (commit !== undefined && commit.tags.length > 0) {
+          const existing = result.get(row.nodeColour)
+          if (existing !== undefined) {
+            for (const tag of commit.tags) {
+              if (!existing.includes(tag)) {
+                existing.push(tag)
+              }
+            }
+          } else {
+            result.set(row.nodeColour, [...commit.tags])
+          }
+        }
+      }
+      // Convert to Map<number, string> (joined labels per colour)
+      const joined = new Map<number, string>()
+      for (const [colour, names] of result) {
+        joined.set(colour, names.join(', '))
+      }
+      return joined
     }
   )
 
@@ -354,9 +423,25 @@ export class CommitList extends React.Component<
       this.props.commitLookup
     )
 
-    const branchLabels =
+    const branchMap =
       this.props.allBranches !== undefined
-        ? this.branchLabelsBySha(this.props.allBranches).get(sha)
+        ? this.branchLabelsBySha(this.props.allBranches)
+        : new Map<string, ReadonlyArray<string>>()
+
+    const branchLabels = branchMap.get(sha)
+
+    const laneLabelsByColour = this.laneLabelsByColour(
+      graphRows,
+      this.props.commitSHAs,
+      this.props.commitLookup,
+      branchMap
+    )
+
+    const isMergeBase =
+      this.props.mergeBaseSha !== undefined &&
+      this.props.mergeBaseSha !== null &&
+      sha === this.props.mergeBaseSha
+        ? true
         : undefined
 
     return (
@@ -385,6 +470,10 @@ export class CommitList extends React.Component<
         graphRow={graphRows[row]}
         graphNumColumns={numColumns}
         branchLabels={branchLabels}
+        tagLabels={commit.tags.length > 0 ? commit.tags : undefined}
+        isMergeBase={isMergeBase}
+        graphMaxColumns={this.props.graphMaxLanes}
+        laneLabelsByColour={laneLabelsByColour}
       />
     )
   }

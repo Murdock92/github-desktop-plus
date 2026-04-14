@@ -431,6 +431,9 @@ export interface IAppState {
 
   /** Whether the changes filter is shown */
   readonly showChangesFilter: boolean
+
+  /** Maximum number of graph lane columns to render in the History commit list */
+  readonly graphMaxLanes: number
 }
 
 export enum FoldoutType {
@@ -974,6 +977,12 @@ export interface ICompareState {
 
   /** The SHAs of commits to highlight in the compare list */
   readonly shasToHighlight: ReadonlyArray<string>
+
+  /**
+   * The SHA of the merge base commit between the current branch and the
+   * comparison branch, or null when in history mode or not yet computed.
+   */
+  readonly mergeBaseSha: string | null
 
   /**
    * A list of branches (remote and local) except the current branch, and

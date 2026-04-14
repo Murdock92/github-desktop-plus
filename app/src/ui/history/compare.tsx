@@ -69,6 +69,8 @@ interface ICompareSidebarProps {
   readonly accounts: ReadonlyArray<Account>
   /** All local and remote branches, used to render branch head labels on the graph. */
   readonly allBranches: ReadonlyArray<Branch>
+  /** Maximum graph lane columns to render. */
+  readonly graphMaxLanes: number
 }
 
 interface ICompareSidebarState {
@@ -345,6 +347,8 @@ export class CompareSidebar extends React.Component<
           this.props.commitDateDisplay === CommitDateDisplay.Absolute
         }
         allBranches={this.props.allBranches}
+        mergeBaseSha={this.props.compareState.mergeBaseSha}
+        graphMaxLanes={this.props.graphMaxLanes}
       />
     )
   }

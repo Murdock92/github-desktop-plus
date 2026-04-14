@@ -37,6 +37,8 @@ interface IAppearanceProps {
   readonly onBranchSortOrderChanged: (sortOrder: BranchSortOrder) => void
   readonly commitDateDisplay: CommitDateDisplay
   readonly onCommitDateDisplayChanged: (value: CommitDateDisplay) => void
+  readonly graphMaxLanes: number
+  readonly onGraphMaxLanesChanged: (value: number) => void
 }
 
 interface IAppearanceState {
@@ -309,6 +311,35 @@ export class Appearance extends React.Component<
     }
   }
 
+  private renderGraphMaxLanes() {
+    const { graphMaxLanes } = this.props
+    const options = [4, 8, 12, 16, 24]
+
+    return (
+      <div className="advanced-section">
+        <h2 id="graph-max-lanes-heading">Commit graph lane limit</h2>
+        <Select
+          label="Maximum lanes to display"
+          value={String(graphMaxLanes)}
+          onChange={this.onGraphMaxLanesChanged}
+        >
+          {options.map(n => (
+            <option key={n} value={n}>
+              {n === 8 ? `${n} (default)` : n}
+            </option>
+          ))}
+        </Select>
+      </div>
+    )
+  }
+
+  private onGraphMaxLanesChanged = (e: React.FormEvent<HTMLSelectElement>) => {
+    const value = parseInt(e.currentTarget.value, 10)
+    if (!isNaN(value)) {
+      this.props.onGraphMaxLanesChanged(value)
+    }
+  }
+
   private renderRepositoryList() {
     return (
       <div className="advanced-section">
@@ -383,6 +414,7 @@ export class Appearance extends React.Component<
         {this.renderRepositoryList()}
         {this.renderBranchSortOrder()}
         {this.renderCommitDateDisplay()}
+        {this.renderGraphMaxLanes()}
         {this.renderWorktreeVisibility()}
         {this.renderSelectedTabSize()}
         {this.renderTitleBarStyleDropdown()}

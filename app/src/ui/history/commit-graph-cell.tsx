@@ -8,11 +8,8 @@ const ROW_HEIGHT = 50 // matches RowHeight in commit-list.tsx
 const NODE_RADIUS = 4
 const BEZIER_FACTOR = 0.8
 
-/**
- * Maximum columns to render. Lanes beyond this are still laid out
- * correctly but are clipped from view to keep the column narrow.
- */
-const MAX_COLUMNS = 8
+/** Default maximum columns when none is specified by the caller. */
+export const DEFAULT_MAX_COLUMNS = 8
 
 /**
  * Colours for graph lanes. Chosen to be legible on both the light
@@ -37,6 +34,14 @@ interface ICommitGraphCellProps {
   readonly numColumns: number
   /** Branch names whose tip is this commit. Rendered as pill labels. */
   readonly branchLabels?: ReadonlyArray<string>
+  /** Tag names on this commit. Rendered as gold pill labels. */
+  readonly tagLabels?: ReadonlyArray<string>
+  /** When true, renders a merge-base diamond marker on the node. */
+  readonly isMergeBase?: boolean
+  /** Maximum lane columns to render. Defaults to DEFAULT_MAX_COLUMNS. */
+  readonly maxColumns?: number
+  /** Maps graph colour index → branch/tag label string for SVG lane tooltips. */
+  readonly laneLabelsByColour?: ReadonlyMap<number, string>
 }
 
 /**
@@ -45,8 +50,17 @@ interface ICommitGraphCellProps {
  */
 export class CommitGraphCell extends React.PureComponent<ICommitGraphCellProps> {
   public render() {
-    const { graphRow, numColumns, branchLabels } = this.props
-    const clampedCols = Math.max(1, Math.min(numColumns, MAX_COLUMNS))
+    const {
+      graphRow,
+      numColumns,
+      branchLabels,
+      tagLabels,
+      isMergeBase,
+      maxColumns,
+      laneLabelsByColour,
+    } = this.props
+    const effectiveMax = maxColumns ?? DEFAULT_MAX_COLUMNS
+    const clampedCols = Math.max(1, Math.min(numColumns, effectiveMax))
     const svgWidth = clampedCols * GRID_X
 
     const midY = ROW_HEIGHT / 2
@@ -54,12 +68,12 @@ export class CommitGraphCell extends React.PureComponent<ICommitGraphCellProps> 
 
     const edgePaths = graphRow.edges.map((edge, i) => {
       // Skip edges that are entirely outside the visible column range
-      if (edge.x1 >= MAX_COLUMNS && edge.x2 >= MAX_COLUMNS) {
+      if (edge.x1 >= effectiveMax && edge.x2 >= effectiveMax) {
         return null
       }
 
-      const x1 = colX(Math.min(edge.x1, MAX_COLUMNS - 1))
-      const x2 = colX(Math.min(edge.x2, MAX_COLUMNS - 1))
+      const x1 = colX(Math.min(edge.x1, effectiveMax - 1))
+      const x2 = colX(Math.min(edge.x2, effectiveMax - 1))
       const colour = GRAPH_COLOURS[Math.abs(edge.colour) % GRAPH_COLOURS.length]
 
       const pathD =
@@ -67,24 +81,46 @@ export class CommitGraphCell extends React.PureComponent<ICommitGraphCellProps> 
           ? `M ${x1} 0 L ${x2} ${ROW_HEIGHT}`
           : `M ${x1} 0 C ${x1} ${d} ${x2} ${ROW_HEIGHT - d} ${x2} ${ROW_HEIGHT}`
 
+      const laneTitle = laneLabelsByColour?.get(edge.colour)
+
       return (
-        <path
-          key={i}
-          d={pathD}
-          stroke={colour}
-          strokeWidth={2}
-          fill="none"
-          strokeLinecap="round"
-        />
+        <g key={i}>
+          <path
+            d={pathD}
+            stroke={colour}
+            strokeWidth={2}
+            fill="none"
+            strokeLinecap="round"
+          />
+          {/* Invisible wide stroke for a larger hover hit target */}
+          <path d={pathD} stroke="transparent" strokeWidth={8} fill="none">
+            {laneTitle !== undefined && <title>{laneTitle}</title>}
+          </path>
+        </g>
       )
     })
 
-    const nodeVisible = graphRow.nodeColumn < MAX_COLUMNS
+    const nodeVisible = graphRow.nodeColumn < effectiveMax
     const nodeColour =
       GRAPH_COLOURS[Math.abs(graphRow.nodeColour) % GRAPH_COLOURS.length]
     const nodeCx = nodeVisible ? colX(graphRow.nodeColumn) : -999
 
-    const labels =
+    /** Diamond shape for merge-base marker, drawn as a rotated square. */
+    const mergeBaseNode =
+      isMergeBase && nodeVisible ? (
+        <polygon
+          points={`${nodeCx},${midY - NODE_RADIUS - 2} ${
+            nodeCx + NODE_RADIUS + 2
+          },${midY} ${nodeCx},${midY + NODE_RADIUS + 2} ${
+            nodeCx - NODE_RADIUS - 2
+          },${midY}`}
+          fill="none"
+          stroke={nodeColour}
+          strokeWidth={2}
+        />
+      ) : null
+
+    const branchPills =
       branchLabels !== undefined && branchLabels.length > 0 && nodeVisible
         ? branchLabels.slice(0, 2).map((label, i) => (
             <span
@@ -98,6 +134,19 @@ export class CommitGraphCell extends React.PureComponent<ICommitGraphCellProps> 
           ))
         : null
 
+    const tagPills =
+      tagLabels !== undefined && tagLabels.length > 0 && nodeVisible
+        ? tagLabels.slice(0, 2).map((label, i) => (
+            <span key={i} className="commit-graph-tag-label" title={label}>
+              {label}
+            </span>
+          ))
+        : null
+
+    const hasLabels =
+      (branchPills !== null && branchPills.length > 0) ||
+      (tagPills !== null && tagPills.length > 0)
+
     return (
       <div className="commit-graph-cell-wrapper">
         <svg
@@ -107,7 +156,7 @@ export class CommitGraphCell extends React.PureComponent<ICommitGraphCellProps> 
           aria-hidden={true}
         >
           {edgePaths}
-          {nodeVisible && (
+          {nodeVisible && !isMergeBase && (
             <circle
               cx={nodeCx}
               cy={midY}
@@ -117,9 +166,13 @@ export class CommitGraphCell extends React.PureComponent<ICommitGraphCellProps> 
               strokeWidth={1.5}
             />
           )}
+          {mergeBaseNode}
         </svg>
-        {labels !== null && (
-          <div className="commit-graph-branch-labels">{labels}</div>
+        {hasLabels && (
+          <div className="commit-graph-branch-labels">
+            {branchPills}
+            {tagPills}
+          </div>
         )}
       </div>
     )

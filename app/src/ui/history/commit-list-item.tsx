@@ -60,6 +60,14 @@ interface ICommitProps {
   readonly graphNumColumns?: number
   /** Branch names whose tip is this commit, for rendering head labels on the graph. */
   readonly branchLabels?: ReadonlyArray<string>
+  /** Tag names on this commit, for rendering tag pills on the graph. */
+  readonly tagLabels?: ReadonlyArray<string>
+  /** Whether this commit is the merge base between the current and compare branch. */
+  readonly isMergeBase?: boolean
+  /** Maximum graph lane columns to render. */
+  readonly graphMaxColumns?: number
+  /** Maps graph colour index → branch/tag label string for SVG lane tooltips. */
+  readonly laneLabelsByColour?: ReadonlyMap<number, string>
 }
 
 interface ICommitListItemState {
@@ -174,6 +182,10 @@ export class CommitListItem extends React.PureComponent<
               graphRow={graphRow!}
               numColumns={graphNumColumns!}
               branchLabels={this.props.branchLabels}
+              tagLabels={this.props.tagLabels}
+              isMergeBase={this.props.isMergeBase}
+              maxColumns={this.props.graphMaxColumns}
+              laneLabelsByColour={this.props.laneLabelsByColour}
             />
           )}
           <div className="info">

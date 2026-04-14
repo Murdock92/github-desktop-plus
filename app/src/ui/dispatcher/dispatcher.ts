@@ -4232,6 +4232,10 @@ export class Dispatcher {
     return this.appStore._updateCommitDateDisplay(commitDateDisplay)
   }
 
+  public setGraphMaxLanes(graphMaxLanes: number) {
+    return this.appStore._updateGraphMaxLanes(graphMaxLanes)
+  }
+
   public testPruneBranches() {
     return this.appStore._testPruneBranches()
   }
