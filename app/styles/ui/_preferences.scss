@@ -205,6 +205,9 @@
       }
     }
   }
+  select {
+    margin-bottom: var(--spacing-half);
+  }
 }
 
 #external-editor-error {
