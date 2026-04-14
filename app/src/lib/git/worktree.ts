@@ -5,6 +5,15 @@ import type { WorktreeEntry, WorktreeType } from '../../models/worktree'
 import { git } from './core'
 import { normalizePath } from '../helpers/path'
 
+function getDotGitPath(repositoryPath: string): string {
+  return Path.join(repositoryPath, '.git')
+}
+
+export interface IWorktreePathInfo {
+  readonly isLinkedWorktree: boolean
+  readonly mainWorktreePath: string | null
+}
+
 export function parseWorktreePorcelainOutput(
   stdout: string
 ): ReadonlyArray<WorktreeEntry> {
@@ -92,16 +101,14 @@ export async function addWorktree(
 
 export async function removeWorktree(
   repository: Repository,
-  path: string,
-  force: boolean = false
+  path: string
 ): Promise<void> {
-  const args = ['worktree', 'remove']
-  if (force) {
-    args.push('--force')
-  }
-  args.push(path)
-
+  const args = ['worktree', 'remove', '--force', path]
   await git(args, repository.path, 'removeWorktree')
+}
+
+export async function pruneWorktrees(repository: Repository): Promise<void> {
+  await git(['worktree', 'prune'], repository.path, 'pruneWorktrees')
 }
 
 export async function moveWorktree(
@@ -135,17 +142,48 @@ export async function getMainWorktreePath(
   return main?.path ?? null
 }
 
-/**
- * Synchronously checks if a repository path is a linked worktree by examining
- * whether `.git` is a file (linked worktree) or directory (main worktree).
- */
-export function isLinkedWorktreeSync(repositoryPath: string): boolean {
+export function getWorktreePathInfoSync(
+  repositoryPath: string
+): IWorktreePathInfo | null {
   try {
-    const dotGit = Path.join(repositoryPath, '.git')
+    const dotGit = getDotGitPath(repositoryPath)
     // eslint-disable-next-line no-sync
     const stats = Fs.statSync(dotGit)
-    return stats.isFile()
+
+    if (stats.isDirectory()) {
+      return { isLinkedWorktree: false, mainWorktreePath: repositoryPath }
+    }
+
+    if (!stats.isFile()) {
+      return null
+    }
+
+    // eslint-disable-next-line no-sync
+    const contents = Fs.readFileSync(dotGit, 'utf8').trim()
+    if (!contents.startsWith('gitdir: ')) {
+      return null
+    }
+
+    const gitDirPath = Path.resolve(
+      repositoryPath,
+      contents.substring('gitdir: '.length)
+    )
+
+    // eslint-disable-next-line no-sync
+    const commondir = Fs.readFileSync(
+      Path.join(gitDirPath, 'commondir'),
+      'utf8'
+    ).trim()
+    if (commondir.length === 0) {
+      return null
+    }
+
+    const commonGitDir = Path.resolve(gitDirPath, commondir)
+    return {
+      isLinkedWorktree: true,
+      mainWorktreePath: Path.dirname(commonGitDir),
+    }
   } catch {
-    return false
+    return null
   }
 }

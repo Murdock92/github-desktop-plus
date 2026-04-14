@@ -17,18 +17,36 @@ import { parseEnumValue } from '../../lib/enum'
 import { assertNever } from '../../lib/fatal-error'
 import { BranchSortOrder } from '../../models/branch-sort-order'
 import { CommitDateDisplay } from '../../models/commit-date-display'
+import {
+  availableDiffFontSizes,
+  defaultDiffFontFamily,
+  defaultDiffFontSize,
+  DiffFontFamily,
+  getAvailableDiffFontFamilies,
+  getDiffFontFamilyLabel,
+} from '../../models/diff-font'
 
 interface IAppearanceProps {
   readonly selectedTheme: ApplicationTheme
   readonly onSelectedThemeChanged: (theme: ApplicationTheme) => void
   readonly selectedTabSize: number
   readonly onSelectedTabSizeChanged: (tabSize: number) => void
+  readonly selectedDiffFontSize: number
+  readonly onSelectedDiffFontSizeChanged: (diffFontSize: number) => void
+  readonly selectedDiffFontFamily: DiffFontFamily
+  readonly onSelectedDiffFontFamilyChanged: (
+    diffFontFamily: DiffFontFamily
+  ) => void
   readonly titleBarStyle: TitleBarStyle
   readonly onTitleBarStyleChanged: (titleBarStyle: TitleBarStyle) => void
   readonly showRecentRepositories: boolean
   readonly onShowRecentRepositoriesChanged: (show: boolean) => void
   readonly showWorktrees: boolean
   readonly onShowWorktreesChanged: (show: boolean) => void
+  readonly showWorktreesInSidebar: boolean
+  readonly onShowWorktreesInSidebarChanged: (show: boolean) => void
+  readonly showCompareTab: boolean
+  readonly onShowCompareTabChanged: (show: boolean) => void
   readonly showBranchNameInRepoList: ShowBranchNameInRepoListSetting
   readonly onShowBranchNameInRepoListChanged: (
     value: ShowBranchNameInRepoListSetting
@@ -44,9 +62,14 @@ interface IAppearanceProps {
 interface IAppearanceState {
   readonly selectedTheme: ApplicationTheme | null
   readonly selectedTabSize: number
+  readonly selectedDiffFontSize: number
+  readonly selectedDiffFontFamily: DiffFontFamily
+  readonly availableDiffFontFamilies: ReadonlyArray<DiffFontFamily>
   readonly titleBarStyle: TitleBarStyle
   readonly showRecentRepositories: boolean
   readonly showWorktrees: boolean
+  readonly showWorktreesInSidebar: boolean
+  readonly showCompareTab: boolean
 }
 
 function getTitleBarStyleDescription(titleBarStyle: TitleBarStyle): string {
@@ -72,9 +95,17 @@ export class Appearance extends React.Component<
     this.state = {
       selectedTheme: usePropTheme ? props.selectedTheme : null,
       selectedTabSize: props.selectedTabSize,
+      selectedDiffFontSize: props.selectedDiffFontSize,
+      selectedDiffFontFamily: props.selectedDiffFontFamily,
+      availableDiffFontFamilies:
+        props.selectedDiffFontFamily === defaultDiffFontFamily
+          ? [defaultDiffFontFamily]
+          : [props.selectedDiffFontFamily, defaultDiffFontFamily],
       titleBarStyle: props.titleBarStyle,
       showRecentRepositories: props.showRecentRepositories,
       showWorktrees: props.showWorktrees,
+      showWorktreesInSidebar: props.showWorktreesInSidebar,
+      showCompareTab: props.showCompareTab,
     }
 
     if (!usePropTheme) {
@@ -82,8 +113,20 @@ export class Appearance extends React.Component<
     }
   }
 
+  public componentDidMount() {
+    this.updateAvailableDiffFontFamilies()
+  }
+
   public async componentDidUpdate(prevProps: IAppearanceProps) {
-    if (prevProps === this.props) {
+    if (
+      prevProps.selectedTheme === this.props.selectedTheme &&
+      prevProps.selectedTabSize === this.props.selectedTabSize &&
+      prevProps.selectedDiffFontSize === this.props.selectedDiffFontSize &&
+      prevProps.selectedDiffFontFamily === this.props.selectedDiffFontFamily &&
+      prevProps.showWorktrees === this.props.showWorktrees &&
+      prevProps.showWorktreesInSidebar === this.props.showWorktreesInSidebar &&
+      prevProps.showCompareTab === this.props.showCompareTab
+    ) {
       return
     }
 
@@ -96,14 +139,45 @@ export class Appearance extends React.Component<
       : await getCurrentlyAppliedTheme()
 
     const selectedTabSize = this.props.selectedTabSize
+    const selectedDiffFontSize = this.props.selectedDiffFontSize
+    const selectedDiffFontFamily = this.props.selectedDiffFontFamily
 
-    this.setState({ selectedTheme, selectedTabSize })
+    this.setState({
+      selectedTheme,
+      selectedTabSize,
+      selectedDiffFontSize,
+      selectedDiffFontFamily,
+      showWorktrees: this.props.showWorktrees,
+      showWorktreesInSidebar: this.props.showWorktreesInSidebar,
+      showCompareTab: this.props.showCompareTab,
+    })
+
+    if (
+      prevProps.selectedDiffFontFamily !== this.props.selectedDiffFontFamily
+    ) {
+      this.updateAvailableDiffFontFamilies()
+    }
   }
 
   private initializeSelectedTheme = async () => {
     const selectedTheme = await getCurrentlyAppliedTheme()
     const selectedTabSize = this.props.selectedTabSize
-    this.setState({ selectedTheme, selectedTabSize })
+    this.setState({
+      selectedTheme,
+      selectedTabSize,
+      selectedDiffFontSize: this.props.selectedDiffFontSize,
+      selectedDiffFontFamily: this.props.selectedDiffFontFamily,
+    })
+  }
+
+  private updateAvailableDiffFontFamilies = async () => {
+    const families = await getAvailableDiffFontFamilies()
+    const selected = this.props.selectedDiffFontFamily
+    const available = families.includes(selected)
+      ? families
+      : [selected, ...families]
+
+    this.setState({ availableDiffFontFamilies: available })
   }
 
   private onSelectedThemeChanged = (theme: ApplicationTheme) => {
@@ -126,10 +200,43 @@ export class Appearance extends React.Component<
     this.props.onShowWorktreesChanged(show)
   }
 
+  private onShowCompareTabChanged = (
+    event: React.FormEvent<HTMLInputElement>
+  ) => {
+    const show = event.currentTarget.checked
+    this.setState({ showCompareTab: show })
+    this.props.onShowCompareTabChanged(show)
+  }
+
+  private onShowWorktreesInSidebarChanged = (
+    event: React.FormEvent<HTMLInputElement>
+  ) => {
+    const show = event.currentTarget.checked
+    this.setState({ showWorktreesInSidebar: show })
+    this.props.onShowWorktreesInSidebarChanged(show)
+  }
+
   private onSelectedTabSizeChanged = (
     event: React.FormEvent<HTMLSelectElement>
   ) => {
     this.props.onSelectedTabSizeChanged(parseInt(event.currentTarget.value))
+  }
+
+  private onSelectedDiffFontSizeChanged = (
+    event: React.FormEvent<HTMLSelectElement>
+  ) => {
+    this.props.onSelectedDiffFontSizeChanged(
+      parseInt(event.currentTarget.value)
+    )
+  }
+
+  private onSelectedDiffFontFamilyChanged = (
+    event: React.FormEvent<HTMLSelectElement>
+  ) => {
+    const value = event.currentTarget.value
+    if (value) {
+      this.props.onSelectedDiffFontFamilyChanged(value)
+    }
   }
 
   private onSelectChanged = (event: React.FormEvent<HTMLSelectElement>) => {
@@ -371,26 +478,72 @@ export class Appearance extends React.Component<
 
   private renderWorktreeVisibility() {
     return (
-      <div className="advanced-section">
-        <h2 id="worktree-heading">{'Worktrees'}</h2>
+      <>
+        <div className="advanced-section">
+          <h2 id="worktree-heading">{'Worktrees'}</h2>
 
-        <Checkbox
-          label="Show worktrees dropdown in toolbar"
-          value={
-            this.state.showWorktrees ? CheckboxValue.On : CheckboxValue.Off
-          }
-          onChange={this.onShowWorktreesChanged}
-        />
-      </div>
+          <Checkbox
+            label="Show worktrees dropdown in toolbar"
+            value={
+              this.state.showWorktrees ? CheckboxValue.On : CheckboxValue.Off
+            }
+            onChange={this.onShowWorktreesChanged}
+          />
+          <Checkbox
+            label="Show worktrees in repository sidebar"
+            value={
+              this.state.showWorktreesInSidebar
+                ? CheckboxValue.On
+                : CheckboxValue.Off
+            }
+            onChange={this.onShowWorktreesInSidebarChanged}
+          />
+        </div>
+        <div className="advanced-section">
+          <h2>{'Commit list'}</h2>
+
+          <Checkbox
+            label="Show Compare tab"
+            value={
+              this.state.showCompareTab ? CheckboxValue.On : CheckboxValue.Off
+            }
+            onChange={this.onShowCompareTabChanged}
+          />
+        </div>
+      </>
     )
   }
 
-  private renderSelectedTabSize() {
+  private renderDiffSettings() {
     const availableTabSizes: number[] = [1, 2, 3, 4, 5, 6, 8, 10, 12]
 
     return (
       <div className="advanced-section">
         <h2 id="diff-heading">{'Diff'}</h2>
+
+        <Select
+          value={this.state.selectedDiffFontSize.toString()}
+          label={__DARWIN__ ? 'Font Size' : 'Font size'}
+          onChange={this.onSelectedDiffFontSizeChanged}
+        >
+          {availableDiffFontSizes.map(n => (
+            <option key={n} value={n}>
+              {n === defaultDiffFontSize ? `${n} (default)` : n}
+            </option>
+          ))}
+        </Select>
+
+        <Select
+          value={this.state.selectedDiffFontFamily}
+          label="Font"
+          onChange={this.onSelectedDiffFontFamilyChanged}
+        >
+          {this.state.availableDiffFontFamilies.map(fontFamily => (
+            <option key={fontFamily} value={fontFamily}>
+              {getDiffFontFamilyLabel(fontFamily)}
+            </option>
+          ))}
+        </Select>
 
         <Select
           value={this.state.selectedTabSize.toString()}
@@ -416,7 +569,7 @@ export class Appearance extends React.Component<
         {this.renderCommitDateDisplay()}
         {this.renderGraphMaxLanes()}
         {this.renderWorktreeVisibility()}
-        {this.renderSelectedTabSize()}
+        {this.renderDiffSettings()}
         {this.renderTitleBarStyleDropdown()}
       </DialogContent>
     )

@@ -1,5 +1,6 @@
 import { Account } from '../models/account'
 import { CommitIdentity } from '../models/commit-identity'
+import { IConfigValueOrigin } from './git/config'
 import { IDiff, ImageDiffType } from '../models/diff'
 import { Repository, ILocalRepositoryState } from '../models/repository'
 import { Branch, IAheadBehind } from '../models/branch'
@@ -41,8 +42,10 @@ import { IStashEntry } from '../models/stash-entry'
 import { TutorialStep } from '../models/tutorial-step'
 import { UncommittedChangesStrategy } from '../models/uncommitted-changes-strategy'
 import { ShowBranchNameInRepoListSetting } from '../models/show-branch-name-in-repo-list'
+import { CopyPathNormalization } from '../models/copy-path-normalization'
 import { BranchSortOrder } from '../models/branch-sort-order'
 import { CommitDateDisplay } from '../models/commit-date-display'
+import { DiffFontFamily } from '../models/diff-font'
 import { DragElement } from '../models/drag-drop'
 import { ILastThankYou } from '../models/last-thank-you'
 import {
@@ -320,6 +323,12 @@ export interface IAppState {
   /** The selected tab size preference */
   readonly selectedTabSize: number
 
+  /** The selected font size preference for text diffs */
+  readonly selectedDiffFontSize: number
+
+  /** The selected font family preference for text diffs */
+  readonly selectedDiffFontFamily: DiffFontFamily
+
   /** The selected title bar style for the application */
   readonly titleBarStyle: TitleBarStyle
 
@@ -328,6 +337,12 @@ export interface IAppState {
 
   /** Whether or not the worktrees dropdown should be shown in the toolbar */
   readonly showWorktrees: boolean
+
+  /** Whether linked worktrees should be shown under their repository in the sidebar */
+  readonly showWorktreesInSidebar: boolean
+
+  /** Whether or not the Compare tab should be shown in the repository view */
+  readonly showCompareTab: boolean
 
   /**
    * A map keyed on a user account (GitHub.com or GitHub Enterprise)
@@ -367,6 +382,8 @@ export interface IAppState {
    * Whether or not the app should use spell check on commit summary and description
    */
   readonly commitSpellcheckEnabled: boolean
+
+  readonly showCommitAuthorInfo: boolean
 
   /**
    * Record of what logged in users have been checked to see if thank you is in
@@ -408,6 +425,9 @@ export interface IAppState {
 
   /** Controls when to show the current branch name next to each repository in the repository list */
   readonly showBranchNameInRepoList: ShowBranchNameInRepoListSetting
+
+  /** Controls slash normalization applied when copying paths to the clipboard */
+  readonly copyPathNormalization: CopyPathNormalization
 
   /** Controls the sort order for branch lists in branch-selection views */
   readonly branchSortOrder: BranchSortOrder
@@ -566,6 +586,9 @@ export interface IRepositoryState {
    * (ie we don't currently use this value explicitly when committing)
    */
   readonly commitAuthor: CommitIdentity | null
+
+  readonly commitAuthorNameOrigin: IConfigValueOrigin | null
+  readonly commitAuthorEmailOrigin: IConfigValueOrigin | null
 
   readonly branchesState: IBranchesState
 

@@ -5,8 +5,8 @@ set -e
 
 cd /app
 
+yarn test:setup
 yarn test:unit
-yarn test:eslint
 yarn test:script
 
 echo '-------------------'

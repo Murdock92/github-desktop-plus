@@ -14,10 +14,7 @@
   - [Authentication errors due to modified registry entries](#authentication-errors-due-to-modified-registry-entries)
 - [Linux](#linux)
    - [I cannot sign in using "Continue with browser"](#i-cannot-sign-in-using-continue-with-browser)
-   - [Error "cannot read property 'path' of undefined"](#my-shellterminal-is-not-detected-and-is-stuck-on-gnome-terminal)
-   - [I cannot access repositories under my organization](#i-cannot-access-repositories-under-my-organization)
    - [I get a white screen when launching Desktop](#i-get-a-white-screen-when-launching-desktop)
-   - [My shell/terminal is not detected and is stuck on "GNOME Terminal"](#my-shellterminal-is-not-detected-and-is-stuck-on-gnome-terminal)
 
 # Known Issues
 
@@ -45,7 +42,8 @@ Related issue: [#33](https://github.com/pol-rivero/github-desktop-plus/issues/33
 
 This error is caused by the app not being notarized by Apple, as notarization requires a paid Apple Developer account.
 
-Simply go to "System Settings" > "Privacy & Security", scroll down to "Security" and click "Open Anyway" on "GitHub Desktop Plus".
+When installing from Homebrew, this error should not appear as the app will automatically be added to the list of allowed apps.
+However, if you insist on installing manually, simply go to "System Settings" > "Privacy & Security", scroll down to "Security" and click "Open Anyway" on "GitHub Desktop Plus".
 
 ### 'The username or passphrase you entered is not correct' error after signing into account
 
@@ -247,6 +245,8 @@ If you see an error that says "Not enough resources are available to process thi
 
 Related issue: [#54](https://github.com/pol-rivero/github-desktop-plus/issues/54)
 
+First of all, make sure you are not using the AppImage package, as it requires some manual setup for the sign-in feature to work. Instead, I strongly recommend using your distribution's native package manager (APT, RPM and AUR packages above) or Flatpak.
+
 After following the instructions in your web browser to authorize GitHub Desktop, the callback is not sent to the app and it remains stuck on the "Continue with browser" screen.
 
 The most likely cause is that the URI scheme used by GitHub Desktop Plus for authorization (`x-github-desktop-auth://`) is not linked to the correct program. You can verify if this is the case by fully closing GitHub Desktop Plus (`Ctrl+Q`) and running the following command in your terminal:
@@ -268,47 +268,9 @@ xdg-mime default github-desktop-plus.desktop x-scheme-handler/x-github-desktop-a
 xdg-mime default io.github.pol_rivero.github-desktop-plus.desktop x-scheme-handler/x-github-desktop-auth
 ```
 
-### I cannot access repositories under my organization
-
-The GitHub Desktop application is an OAuth application, but this fork does not
-have the same permissions as the app does on Windows and macOS, which manifests
-in a couple of different ways:
-
- - the "Clone a Repository" view does not show all organization repositories
- - pushes to a repository owned by an organization may be rejected with a
-   generic error message
-
-The root cause of this is organizations by default will have "OAuth App access
-restrictions" enabled, which blocks the GitHub Desktop Plus app that is
-used by this fork.
-
-You can verify if this is the case by going to https://github.com/settings/applications, clicking on "Desktop Plus (GitHub Desktop Plus)", and checking if your organization is enabled in the "Organization access" section.
-
-**Workaround:** ask your organization admin to [approve access](https://docs.github.com/en/organizations/restricting-access-to-your-organizations-data/approving-oauth-apps-for-your-organization)
-to the GitHub Desktop Plus app. 
-
-If you have not requested the GitHub Desktop Plus app for this organization, [follow these instructions first](https://docs.github.com/en/account-and-profile/setting-up-and-managing-your-personal-account-on-github/managing-your-membership-in-organizations/requesting-organization-approval-for-oauth-apps).
-
 
 ### I get a white screen when launching Desktop
 
 Electron enables hardware accelerated graphics by default, but some graphics cards have issues with hardware acceleration which means the application will launch successfully but it will be a white screen. If you are running GitHub Desktop within virtualization software like Parallels Desktop, hardware accelerated graphics may not be available.
 
 **Workaround:** if you set the `GITHUB_DESKTOP_DISABLE_HARDWARE_ACCELERATION` environment variable to any value and launch Desktop again it will disable hardware acceleration on launch, so the application is usable.
-
-
-### My shell/terminal is not detected and is stuck on GNOME Terminal
-
-On non-GNOME desktop's the GitHub Desktop application may not correctly set the 
-environment's shell, despite the shell being selected in the application settings.
-
-Attempting to launch the shell from the application will show the error  
-"cannot read property 'path' of undefined".
-
-**Workaround:** 
-
-1. Install any other terminal emulator (it doesn't matter which one).
-1. In GitHub Desktop Plus, go to "File" > "Options" > "Integrations".
-1. Change the "Shell" option to the other terminal emulator you have installed. Click "Save".
-1. Change the "Shell" option back to your preferred terminal emulator. Click "Save" again.
-1. Uninstall the other terminal emulator you installed in step 1, you no longer need it.

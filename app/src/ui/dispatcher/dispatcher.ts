@@ -1,4 +1,5 @@
 import { Disposable, DisposableLike } from 'event-kit'
+import { clipboard } from 'electron'
 
 import {
   IAPIOrganization,
@@ -106,6 +107,8 @@ import { UncommittedChangesStrategy } from '../../models/uncommitted-changes-str
 import { BranchSortOrder } from '../../models/branch-sort-order'
 import { ShowBranchNameInRepoListSetting } from '../../models/show-branch-name-in-repo-list'
 import { CommitDateDisplay } from '../../models/commit-date-display'
+import { DiffFontFamily } from '../../models/diff-font'
+import { CopyPathNormalization } from '../../models/copy-path-normalization'
 import { IStashEntry } from '../../models/stash-entry'
 import { WorkflowPreferences } from '../../models/workflow-preferences'
 import { resolveWithin } from '../../lib/path'
@@ -133,6 +136,8 @@ import { CLIAction } from '../../lib/cli-action'
 import { IBranchNamePreset } from '../../models/branch-preset'
 import { BypassReasonType } from '../secret-scanning/bypass-push-protection-dialog'
 import { EditorOverride } from '../../models/editor-override'
+import { convertToCopyPath } from '../../lib/helpers/path'
+import { EOL } from 'os'
 
 /**
  * An error handler function.
@@ -784,6 +789,14 @@ export class Dispatcher {
   /** Pull the current branch. */
   public pull(repository: Repository): Promise<void> {
     return this.appStore._pull(repository)
+  }
+
+  public async pullAllRepositories(): Promise<void> {
+    try {
+      await this.appStore._pullAllRepositories()
+    } catch (error) {
+      this.postError(error)
+    }
   }
 
   /** Fetch a specific refspec for the repository. */
@@ -1870,7 +1883,7 @@ export class Dispatcher {
   }
 
   /** Update the repository's path. */
-  private async updateRepositoryPath(
+  public async updateRepositoryPath(
     repository: Repository,
     path: string
   ): Promise<void> {
@@ -2374,6 +2387,8 @@ export class Dispatcher {
         )
       case RetryActionType.StashChanges:
         return this.stashChanges(retryAction.repository, retryAction.files)
+      case RetryActionType.ResetAndPull:
+        return this.resetAndPull(retryAction.repository)
       default:
         return assertNever(retryAction, `Unknown retry action: ${retryAction}`)
     }
@@ -2640,6 +2655,20 @@ export class Dispatcher {
     await this.appStore._loadStatus(repository)
   }
 
+  public async resetAndPull(repository: Repository): Promise<void> {
+    const retryAction: RetryAction = {
+      type: RetryActionType.ResetAndPull,
+      repository,
+    }
+
+    if (this.appStore._checkForUncommittedChanges(repository, retryAction)) {
+      return
+    }
+
+    await this.appStore._fetch(repository, FetchType.UserInitiatedTask)
+    await this.appStore._resetHardToUpstream(repository)
+  }
+
   public setConfirmDiscardStashSetting(value: boolean) {
     return this.appStore._setConfirmDiscardStashSetting(value)
   }
@@ -2694,6 +2723,20 @@ export class Dispatcher {
    */
   public setSelectedTabSize(tabSize: number) {
     return this.appStore._setSelectedTabSize(tabSize)
+  }
+
+  /**
+   * Set the application-wide diff font size
+   */
+  public setSelectedDiffFontSize(diffFontSize: number) {
+    return this.appStore._setSelectedDiffFontSize(diffFontSize)
+  }
+
+  /**
+   * Set the application-wide diff font family
+   */
+  public setSelectedDiffFontFamily(diffFontFamily: DiffFontFamily) {
+    return this.appStore._setSelectedDiffFontFamily(diffFontFamily)
   }
   /*
    * Set the title bar style for the application
@@ -2943,12 +2986,24 @@ export class Dispatcher {
     this.appStore._setShowWorktrees(showWorktrees)
   }
 
+  public setShowWorktreesInSidebar(showWorktreesInSidebar: boolean) {
+    this.appStore._setShowWorktreesInSidebar(showWorktreesInSidebar)
+  }
+
+  public setShowCompareTab(showCompareTab: boolean) {
+    this.appStore._setShowCompareTab(showCompareTab)
+  }
+
   public setHideWindowOnQuit(hideWindowOnQuit: boolean) {
     this.appStore._setHideWindowOnQuit(hideWindowOnQuit)
   }
 
   public setCommitSpellcheckEnabled(commitSpellcheckEnabled: boolean) {
     this.appStore._setCommitSpellcheckEnabled(commitSpellcheckEnabled)
+  }
+
+  public setShowCommitAuthorInfo(showCommitAuthorInfo: boolean) {
+    this.appStore._setShowCommitAuthorInfo(showCommitAuthorInfo)
   }
 
   public setUseWindowsOpenSSH(useWindowsOpenSSH: boolean) {
@@ -4221,6 +4276,24 @@ export class Dispatcher {
   ) {
     return this.appStore._updateShowBranchNameInRepoList(
       showBranchNameInRepoList
+    )
+  }
+
+  public setCopyPathNormalization(value: CopyPathNormalization) {
+    return this.appStore._setCopyPathNormalization(value)
+  }
+
+  public copyPathToClipboard(path: string) {
+    this.copyPathsToClipboard([path])
+  }
+
+  public copyPathsToClipboard(paths: ReadonlyArray<string>) {
+    clipboard.writeText(
+      paths
+        .map(p =>
+          convertToCopyPath(p, this.appStore.getState().copyPathNormalization)
+        )
+        .join(EOL)
     )
   }
 

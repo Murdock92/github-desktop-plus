@@ -1,18 +1,26 @@
-GitHub Desktop Plus v3.5.7-alpha3
+GitHub Desktop Plus v3.5.7
+
+Upstream: [GitHub Desktop 3.5.7 release notes](https://github.com/desktop/desktop/releases/tag/release-3.5.7)
+
+---
 
 ## **Changes and improvements:**
 
-- Branch lists are now sorted by *"Last modified"* by default. You can return to an alphabetical sort order by changing the "Sort branches" setting in the Appearance settings. Thanks @kurtextrem!
+- [#105] We now support displaying **worktrees in the repository sidebar** list. Thank you @ignatremizov!  
+  To enable it, go to `File` > `Options` > `Appearance` and check the box for "Show worktrees in repository sidebar".
 
-- The changes list in a commit now supports *multi-select* (`Ctrl+Click`, `Shift+Click`) to allow copying several file paths at once. 
+- [#129] When the current local branch is ahead and behind the remote branch, added a new **Reset and pull** option to the pull dropdown. This will discard your local commits and pull the latest changes from the remote branch (similar to the existing "Force push" option but the other way around).
 
-- Added the option to see *absolute dates* in the commit history. You can enable this in the Appearance settings.
+- [#126] When creating a new worktree, [.worktreeinclude](https://code.claude.com/docs/en/common-workflows#copy-gitignored-files-to-worktrees) files are now respected, and the files specified in them will be copied to the new worktree.  
 
-- **Debian / Ubuntu / Linux Mint / Pop!_OS / Zorin OS**: The `sources.list` file now specifies the supported architectures, which should prevent warnings when running `apt`. Thanks @arfshl!
-
+- Show a frendlier error message when trying to delete a worktree with uncommitted changes.
 
 ## **Fixes:**
 
-- **macOS**: The x86 (Intel) build of the app should now launch correctly.
+- Worktrees that contain submodules can now be deleted without errors.
 
-- **Windows / macOS**: Removed an incorrect update error message in the "About" dialog.
+- The "Pull all" button now correctly pulls changes in linked worktrees as well.
+
+- [#130] Fixed a visual bug where the hovered commit was not highlighted when using drag and drop to squash commits.
+
+- Fixed a problem where some context menus (*"Open with ..."*) displayed the globally configured external editor name instead of the repository-specific one.

@@ -987,6 +987,10 @@ export class SectionList extends React.Component<
     }
     const gridHeight = grid.getBoundingClientRect().height
 
+    if (gridHeight === 0) {
+      return
+    }
+
     const minCellOffset =
       sectionOffset + rowOffsetInSection + rowHeight - gridHeight
     const maxCellOffset = sectionOffset + rowOffsetInSection
@@ -1768,7 +1772,18 @@ export class SectionList extends React.Component<
       lastSelectedRow !== undefined &&
       isValidRow(lastSelectedRow, rowCount)
     ) {
-      this.scrollRowToVisible(lastSelectedRow)
+      const rowElement = this.rowRefs.get(lastSelectedRow)
+      if (rowElement !== undefined) {
+        this.focusRow = lastSelectedRow
+        rowElement.focus({ preventScroll: true })
+      } else {
+        // Selected row is not yet materialized in the DOM (virtualized away).
+        // Fall back to the first row to avoid a no-focus state.
+        const firstRow: RowIndexPath = { section: 0, row: 0 }
+        if (isValidRow(firstRow, rowCount)) {
+          this.scrollRowToVisible(firstRow)
+        }
+      }
     } else {
       // TODO: decide which grid to focus
       // if (this.grid) {

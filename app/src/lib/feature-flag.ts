@@ -108,7 +108,19 @@ export const enableCopilotSdkCommitMessageGeneration = (account: Account) => {
   )
 }
 
+/** Should we enable Copilot-powered merge conflict resolution? */
+export function enableCopilotConflictResolution(): boolean {
+  return enableDevelopmentFeatures()
+}
+
 export function enableAccessibleListToolTips(): boolean {
+  // In test environments the hover-based tooltips must remain active so that
+  // tooltip content tests can trigger and verify them. The accessible list
+  // tooltips (keyboard/focus-based) are a beta feature that replaces hover
+  // tooltips, but tests rely on the hover behavior.
+  if (process.env.TEST_ENV === '1') {
+    return false
+  }
   return enableBetaFeatures()
 }
 

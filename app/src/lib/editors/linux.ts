@@ -123,6 +123,7 @@ const editors: ILinuxExternalEditor[] = [
     name: 'IntelliJ IDEA Ultimate Edition',
     paths: [
       '/snap/bin/intellij-idea-ultimate',
+      '/usr/bin/intellij-idea-ultimate-edition',
       `${HOME}/.local/share/JetBrains/Toolbox/scripts/intellij-idea-ultimate`,
     ],
   },

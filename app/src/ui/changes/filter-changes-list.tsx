@@ -12,6 +12,7 @@ import {
 } from '../../models/status'
 import { DiffSelectionType } from '../../models/diff'
 import { CommitIdentity } from '../../models/commit-identity'
+import { IConfigValueOrigin } from '../../lib/git/config'
 import { ICommitMessage } from '../../models/commit-message'
 import {
   isRepositoryWithGitHubRepository,
@@ -36,7 +37,6 @@ import { ChangedFile } from './changed-file'
 import { IAutocompletionProvider } from '../autocompletion'
 import { showContextualMenu } from '../../lib/menu-item'
 import { arrayEquals } from '../../lib/equality'
-import { clipboard } from 'electron'
 import { basename } from 'path'
 import { Commit, ICommitContext } from '../../models/commit'
 import {
@@ -53,7 +53,6 @@ import { hasWritePermission } from '../../models/github-repository'
 import { hasConflictedFiles } from '../../lib/status'
 import { createObservableRef } from '../lib/observable-ref'
 import { Popup, PopupType } from '../../models/popup'
-import { EOL } from 'os'
 import { RepoRulesInfo } from '../../models/repo-rules'
 import { IAheadBehind } from '../../models/branch'
 import { StashDiffViewerId } from '../stashing'
@@ -162,6 +161,8 @@ interface IFilterChangesListProps {
    */
   readonly branch: string | null
   readonly commitAuthor: CommitIdentity | null
+  readonly commitAuthorNameOrigin?: IConfigValueOrigin | null
+  readonly commitAuthorEmailOrigin?: IConfigValueOrigin | null
   readonly dispatcher: Dispatcher
   readonly availableWidth: number
   readonly isCommitting: boolean
@@ -224,6 +225,8 @@ interface IFilterChangesListProps {
   readonly commitSpellcheckEnabled: boolean
 
   readonly showCommitLengthWarning: boolean
+
+  readonly showCommitAuthorInfo: boolean
 
   readonly accounts: ReadonlyArray<Account>
 
@@ -318,7 +321,6 @@ export class FilterChangesList extends React.Component<
 > {
   private filterTextBox: TextBox | undefined = undefined
   private headerRef = createObservableRef<HTMLDivElement>()
-  private filterOptionsButtonRef: HTMLButtonElement | null = null
   private includeAllCheckBoxRef = React.createRef<Checkbox>()
   private filterListRef =
     React.createRef<AugmentedSectionFilterList<IChangesListItem>>()
@@ -657,7 +659,7 @@ export class FilterChangesList extends React.Component<
       label: CopyFilePathLabel,
       action: () => {
         const fullPath = Path.join(this.props.repository.path, file.path)
-        clipboard.writeText(fullPath)
+        this.props.dispatcher.copyPathToClipboard(fullPath)
       },
     }
   }
@@ -667,7 +669,8 @@ export class FilterChangesList extends React.Component<
   ): IMenuItem => {
     return {
       label: CopyRelativeFilePathLabel,
-      action: () => clipboard.writeText(Path.normalize(file.path)),
+      action: () =>
+        this.props.dispatcher.copyPathToClipboard(Path.normalize(file.path)),
     }
   }
 
@@ -680,7 +683,7 @@ export class FilterChangesList extends React.Component<
         const fullPaths = files.map(file =>
           Path.join(this.props.repository.path, file.path)
         )
-        clipboard.writeText(fullPaths.join(EOL))
+        this.props.dispatcher.copyPathsToClipboard(fullPaths)
       },
     }
   }
@@ -692,7 +695,7 @@ export class FilterChangesList extends React.Component<
       label: CopySelectedRelativePathsLabel,
       action: () => {
         const paths = files.map(file => Path.normalize(file.path))
-        clipboard.writeText(paths.join(EOL))
+        this.props.dispatcher.copyPathsToClipboard(paths)
       },
     }
   }
@@ -1029,6 +1032,9 @@ export class FilterChangesList extends React.Component<
         branch={this.props.branch}
         mostRecentLocalCommit={this.props.mostRecentLocalCommit}
         commitAuthor={this.props.commitAuthor}
+        commitAuthorNameOrigin={this.props.commitAuthorNameOrigin}
+        commitAuthorEmailOrigin={this.props.commitAuthorEmailOrigin}
+        showCommitAuthorInfo={this.props.showCommitAuthorInfo}
         isShowingModal={this.props.isShowingModal}
         isShowingFoldout={this.props.isShowingFoldout}
         anyFilesSelected={anyFilesSelected}
@@ -1290,12 +1296,7 @@ export class FilterChangesList extends React.Component<
   }
 
   public focus() {
-    if (this.props.showChangesFilter) {
-      this.filterOptionsButtonRef?.focus()
-      return
-    }
-
-    this.includeAllCheckBoxRef.current?.focus()
+    this.filterListRef.current?.focus()
   }
 
   private onChangedFileClick = (

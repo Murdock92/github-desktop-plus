@@ -11,6 +11,7 @@ import { Dialog, DialogFooter, DialogError } from '../dialog'
 import {
   getGlobalConfigValue,
   setGlobalConfigValue,
+  removeGlobalConfigValue,
 } from '../../lib/git/config'
 import { lookupPreferredEmail } from '../../lib/email'
 import { Shell, getAvailableShells } from '../../lib/shells'
@@ -26,6 +27,7 @@ import { OkCancelButtonGroup } from '../dialog/ok-cancel-button-group'
 import { Integrations } from './integrations'
 import { BranchSortOrder } from '../../models/branch-sort-order'
 import { CommitDateDisplay } from '../../models/commit-date-display'
+import { DiffFontFamily } from '../../models/diff-font'
 import {
   UncommittedChangesStrategy,
   defaultUncommittedChangesStrategy,
@@ -46,6 +48,10 @@ import { Repository } from '../../models/repository'
 import { Notifications } from './notifications'
 import { Accessibility } from './accessibility'
 import { ShowBranchNameInRepoListSetting } from '../../models/show-branch-name-in-repo-list'
+import {
+  CopyPathNormalization,
+  defaultCopyPathNormalization,
+} from '../../models/copy-path-normalization'
 import {
   ICustomIntegration,
   TargetPathArgument,
@@ -69,6 +75,7 @@ interface IPreferencesProps {
   readonly onDismissed: () => void
   readonly useWindowsOpenSSH: boolean
   readonly showCommitLengthWarning: boolean
+  readonly showCommitAuthorInfo: boolean
   readonly notificationsEnabled: boolean
   readonly optOutOfUsageTracking: boolean
   readonly useExternalCredentialHelper: boolean
@@ -87,6 +94,8 @@ interface IPreferencesProps {
   readonly selectedShell: Shell
   readonly selectedTheme: ApplicationTheme
   readonly selectedTabSize: number
+  readonly selectedDiffFontSize: number
+  readonly selectedDiffFontFamily: DiffFontFamily
   readonly useCustomEditor: boolean
   readonly customEditor: ICustomIntegration | null
   readonly useCustomShell: boolean
@@ -95,6 +104,8 @@ interface IPreferencesProps {
   readonly titleBarStyle: TitleBarStyle
   readonly showRecentRepositories: boolean
   readonly showWorktrees: boolean
+  readonly showWorktreesInSidebar: boolean
+  readonly showCompareTab: boolean
   readonly repositoryIndicatorsEnabled: boolean
   readonly showBranchNameInRepoList: ShowBranchNameInRepoListSetting
   readonly branchSortOrder: BranchSortOrder
@@ -104,6 +115,7 @@ interface IPreferencesProps {
   readonly onEditGlobalGitConfig: () => void
   readonly underlineLinks: boolean
   readonly showDiffCheckMarks: boolean
+  readonly copyPathNormalization: CopyPathNormalization
 }
 
 interface IPreferencesState {
@@ -114,9 +126,11 @@ interface IPreferencesState {
   readonly initialCommitterName: string | null
   readonly initialCommitterEmail: string | null
   readonly initialDefaultBranch: string | null
+  readonly setGlobalAuthor: boolean
   readonly disallowedCharactersMessage: string | null
   readonly useWindowsOpenSSH: boolean
   readonly showCommitLengthWarning: boolean
+  readonly showCommitAuthorInfo: boolean
   readonly notificationsEnabled: boolean
   readonly optOutOfUsageTracking: boolean
   readonly useExternalCredentialHelper: boolean
@@ -142,6 +156,8 @@ interface IPreferencesState {
   readonly titleBarStyle: TitleBarStyle
   readonly showRecentRepositories: boolean
   readonly showWorktrees: boolean
+  readonly showWorktreesInSidebar: boolean
+  readonly showCompareTab: boolean
   /**
    * If unable to save Git configuration values (name, email)
    * due to an existing configuration lock file this property
@@ -159,6 +175,8 @@ interface IPreferencesState {
 
   readonly initiallySelectedTheme: ApplicationTheme
   readonly initiallySelectedTabSize: number
+  readonly initiallySelectedDiffFontSize: number
+  readonly initiallySelectedDiffFontFamily: DiffFontFamily
 
   readonly isLoadingGitConfig: boolean
 
@@ -172,6 +190,7 @@ interface IPreferencesState {
   readonly selectedGitHookEnvShell: string | undefined
   // Whether the preferences related to Git hooks environment have been changed
   readonly hooksPreferencesDirty: boolean
+  readonly copyPathNormalization: CopyPathNormalization
 }
 
 /**
@@ -200,6 +219,7 @@ export class Preferences extends React.Component<
       initialCommitterName: null,
       initialCommitterEmail: null,
       initialDefaultBranch: null,
+      setGlobalAuthor: false,
       disallowedCharactersMessage: null,
       availableEditors: [],
       useCustomEditor: this.props.useCustomEditor,
@@ -210,6 +230,7 @@ export class Preferences extends React.Component<
         this.props.branchPresetScript ?? DefaultCustomIntegration,
       useWindowsOpenSSH: false,
       showCommitLengthWarning: false,
+      showCommitAuthorInfo: false,
       notificationsEnabled: true,
       optOutOfUsageTracking: false,
       useExternalCredentialHelper: false,
@@ -229,6 +250,8 @@ export class Preferences extends React.Component<
       titleBarStyle: this.props.titleBarStyle,
       showRecentRepositories: this.props.showRecentRepositories,
       showWorktrees: this.props.showWorktrees,
+      showWorktreesInSidebar: this.props.showWorktreesInSidebar,
+      showCompareTab: this.props.showCompareTab,
       repositoryIndicatorsEnabled: this.props.repositoryIndicatorsEnabled,
       showBranchNameInRepoList: this.props.showBranchNameInRepoList,
       branchSortOrder: this.props.branchSortOrder,
@@ -237,6 +260,8 @@ export class Preferences extends React.Component<
       hideWindowOnQuit: this.props.hideWindowOnQuit,
       initiallySelectedTheme: this.props.selectedTheme,
       initiallySelectedTabSize: this.props.selectedTabSize,
+      initiallySelectedDiffFontSize: this.props.selectedDiffFontSize,
+      initiallySelectedDiffFontFamily: this.props.selectedDiffFontFamily,
       isLoadingGitConfig: true,
       underlineLinks: this.props.underlineLinks,
       showDiffCheckMarks: this.props.showDiffCheckMarks,
@@ -244,6 +269,8 @@ export class Preferences extends React.Component<
       cacheGitHookEnv: getCacheHooksEnv(),
       selectedGitHookEnvShell: getGitHookEnvShell(),
       hooksPreferencesDirty: false,
+      copyPathNormalization:
+        this.props.copyPathNormalization ?? defaultCopyPathNormalization,
     }
   }
 
@@ -288,8 +315,10 @@ export class Preferences extends React.Component<
       initialCommitterName,
       initialCommitterEmail,
       initialDefaultBranch,
+      setGlobalAuthor: !!initialCommitterName || !!initialCommitterEmail,
       useWindowsOpenSSH: this.props.useWindowsOpenSSH,
       showCommitLengthWarning: this.props.showCommitLengthWarning,
+      showCommitAuthorInfo: this.props.showCommitAuthorInfo,
       notificationsEnabled: this.props.notificationsEnabled,
       optOutOfUsageTracking: this.props.optOutOfUsageTracking,
       useExternalCredentialHelper: this.props.useExternalCredentialHelper,
@@ -323,6 +352,22 @@ export class Preferences extends React.Component<
     }
     if (this.state.initiallySelectedTabSize !== this.props.selectedTabSize) {
       this.onSelectedTabSizeChanged(this.state.initiallySelectedTabSize)
+    }
+    if (
+      this.state.initiallySelectedDiffFontSize !==
+      this.props.selectedDiffFontSize
+    ) {
+      this.onSelectedDiffFontSizeChanged(
+        this.state.initiallySelectedDiffFontSize
+      )
+    }
+    if (
+      this.state.initiallySelectedDiffFontFamily !==
+      this.props.selectedDiffFontFamily
+    ) {
+      this.onSelectedDiffFontFamilyChanged(
+        this.state.initiallySelectedDiffFontFamily
+      )
     }
 
     this.props.onDismissed()
@@ -505,6 +550,8 @@ export class Preferences extends React.Component<
             onUseCustomShellChanged={this.onUseCustomShellChanged}
             onCustomShellChanged={this.onCustomShellChanged}
             onBranchPresetScriptChanged={this.onBranchPresetScriptChanged}
+            copyPathNormalization={this.state.copyPathNormalization}
+            onCopyPathNormalizationChanged={this.onCopyPathNormalizationChanged}
           />
         )
         break
@@ -547,6 +594,14 @@ export class Preferences extends React.Component<
               selectedShell={
                 this.state.selectedGitHookEnvShell ?? defaultGitHookEnvShell
               }
+              showCommitAuthorInfo={this.state.showCommitAuthorInfo}
+              onShowCommitAuthorInfoChanged={this.onShowCommitAuthorInfoChanged}
+              setGlobalAuthor={this.state.setGlobalAuthor}
+              globalAuthorWasSet={
+                !!this.state.initialCommitterName ||
+                !!this.state.initialCommitterEmail
+              }
+              onSetGlobalAuthorChanged={this.onSetGlobalAuthorChanged}
             />
           </>
         )
@@ -559,6 +614,12 @@ export class Preferences extends React.Component<
             onSelectedThemeChanged={this.onSelectedThemeChanged}
             selectedTabSize={this.props.selectedTabSize}
             onSelectedTabSizeChanged={this.onSelectedTabSizeChanged}
+            selectedDiffFontSize={this.props.selectedDiffFontSize}
+            onSelectedDiffFontSizeChanged={this.onSelectedDiffFontSizeChanged}
+            selectedDiffFontFamily={this.props.selectedDiffFontFamily}
+            onSelectedDiffFontFamilyChanged={
+              this.onSelectedDiffFontFamilyChanged
+            }
             titleBarStyle={this.props.titleBarStyle}
             onTitleBarStyleChanged={this.onTitleBarStyleChanged}
             showRecentRepositories={this.props.showRecentRepositories}
@@ -567,6 +628,12 @@ export class Preferences extends React.Component<
             }
             showWorktrees={this.state.showWorktrees}
             onShowWorktreesChanged={this.onShowWorktreesChanged}
+            showWorktreesInSidebar={this.state.showWorktreesInSidebar}
+            onShowWorktreesInSidebarChanged={
+              this.onShowWorktreesInSidebarChanged
+            }
+            showCompareTab={this.state.showCompareTab}
+            onShowCompareTabChanged={this.onShowCompareTabChanged}
             showBranchNameInRepoList={this.state.showBranchNameInRepoList}
             onShowBranchNameInRepoListChanged={
               this.onShowBranchNameInRepoListChanged
@@ -709,6 +776,14 @@ export class Preferences extends React.Component<
     this.setState({ showCommitLengthWarning })
   }
 
+  private onShowCommitAuthorInfoChanged = (showCommitAuthorInfo: boolean) => {
+    this.setState({ showCommitAuthorInfo })
+  }
+
+  private onSetGlobalAuthorChanged = (setGlobalAuthor: boolean) => {
+    this.setState({ setGlobalAuthor })
+  }
+
   private onNotificationsEnabledChanged = (notificationsEnabled: boolean) => {
     this.setState({ notificationsEnabled })
   }
@@ -832,6 +907,12 @@ export class Preferences extends React.Component<
     this.setState({ branchSortOrder })
   }
 
+  private onCopyPathNormalizationChanged = (
+    copyPathNormalization: CopyPathNormalization
+  ) => {
+    this.setState({ copyPathNormalization })
+  }
+
   private onCommitDateDisplayChanged = (
     commitDateDisplay: CommitDateDisplay
   ) => {
@@ -846,6 +927,16 @@ export class Preferences extends React.Component<
     this.props.dispatcher.setSelectedTabSize(tabSize)
   }
 
+  private onSelectedDiffFontSizeChanged = (diffFontSize: number) => {
+    this.props.dispatcher.setSelectedDiffFontSize(diffFontSize)
+  }
+
+  private onSelectedDiffFontFamilyChanged = (
+    diffFontFamily: DiffFontFamily
+  ) => {
+    this.props.dispatcher.setSelectedDiffFontFamily(diffFontFamily)
+  }
+
   private onTitleBarStyleChanged = (titleBarStyle: TitleBarStyle) => {
     this.setState({ titleBarStyle })
   }
@@ -858,6 +949,16 @@ export class Preferences extends React.Component<
 
   private onShowWorktreesChanged = (showWorktrees: boolean) => {
     this.setState({ showWorktrees })
+  }
+
+  private onShowWorktreesInSidebarChanged = (
+    showWorktreesInSidebar: boolean
+  ) => {
+    this.setState({ showWorktreesInSidebar })
+  }
+
+  private onShowCompareTabChanged = (showCompareTab: boolean) => {
+    this.setState({ showCompareTab })
   }
 
   private renderFooter() {
@@ -879,13 +980,28 @@ export class Preferences extends React.Component<
     try {
       let shouldRefreshAuthor = false
 
-      if (this.state.committerName !== this.state.initialCommitterName) {
-        await setGlobalConfigValue('user.name', this.state.committerName)
-        shouldRefreshAuthor = true
-      }
+      if (this.state.setGlobalAuthor) {
+        if (this.state.committerName !== this.state.initialCommitterName) {
+          await setGlobalConfigValue('user.name', this.state.committerName)
+          shouldRefreshAuthor = true
+        }
 
-      if (this.state.committerEmail !== this.state.initialCommitterEmail) {
-        await setGlobalConfigValue('user.email', this.state.committerEmail)
+        if (this.state.committerEmail !== this.state.initialCommitterEmail) {
+          await setGlobalConfigValue('user.email', this.state.committerEmail)
+          shouldRefreshAuthor = true
+        }
+      } else if (
+        this.state.initialCommitterName ||
+        this.state.initialCommitterEmail
+      ) {
+        // User unchecked the box — remove identity from global config.
+        // Ignore errors if values are already absent.
+        try {
+          await removeGlobalConfigValue('user.name')
+        } catch {}
+        try {
+          await removeGlobalConfigValue('user.email')
+        } catch {}
         shouldRefreshAuthor = true
       }
 
@@ -926,6 +1042,16 @@ export class Preferences extends React.Component<
         dispatcher.setShowWorktrees(this.state.showWorktrees)
       }
 
+      if (
+        this.state.showWorktreesInSidebar !== this.props.showWorktreesInSidebar
+      ) {
+        dispatcher.setShowWorktreesInSidebar(this.state.showWorktreesInSidebar)
+      }
+
+      if (this.state.showCompareTab !== this.props.showCompareTab) {
+        dispatcher.setShowCompareTab(this.state.showCompareTab)
+      }
+
       if (this.state.hideWindowOnQuit !== this.props.hideWindowOnQuit) {
         dispatcher.setHideWindowOnQuit(this.state.hideWindowOnQuit)
       }
@@ -963,6 +1089,7 @@ export class Preferences extends React.Component<
 
     dispatcher.setUseWindowsOpenSSH(this.state.useWindowsOpenSSH)
     dispatcher.setShowCommitLengthWarning(this.state.showCommitLengthWarning)
+    dispatcher.setShowCommitAuthorInfo(this.state.showCommitAuthorInfo)
     dispatcher.setNotificationsEnabled(this.state.notificationsEnabled)
 
     await dispatcher.setStatsOptOut(this.state.optOutOfUsageTracking, false)
@@ -1051,6 +1178,7 @@ export class Preferences extends React.Component<
     dispatcher.setBranchSortOrder(this.state.branchSortOrder)
     dispatcher.setCommitDateDisplay(this.state.commitDateDisplay)
     dispatcher.setGraphMaxLanes(this.state.graphMaxLanes)
+    dispatcher.setCopyPathNormalization(this.state.copyPathNormalization)
 
     this.props.onDismissed()
   }

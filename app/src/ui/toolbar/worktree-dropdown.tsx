@@ -9,6 +9,7 @@ import {
   IConstrainedValue,
   IRepositoryState,
 } from '../../lib/app-state'
+import { ILocalRepositoryState } from '../../models/repository'
 import { WorktreeEntry } from '../../models/worktree'
 import { WorktreeList } from '../worktrees/worktree-list'
 import { CloningRepository } from '../../models/cloning-repository'
@@ -18,6 +19,7 @@ import { PopupType } from '../../models/popup'
 import { Resizable } from '../resizable'
 import { enableResizingToolbarButtons } from '../../lib/feature-flag'
 import { normalizePath } from '../../lib/helpers/path'
+import { setPreferredWorktreePath } from '../../lib/worktree-preferences'
 
 interface IWorktreeDropdownProps {
   readonly dispatcher: Dispatcher
@@ -28,6 +30,10 @@ interface IWorktreeDropdownProps {
   readonly enableFocusTrap: boolean
   readonly repositories: ReadonlyArray<Repository | CloningRepository>
   readonly worktreeDropdownWidth: IConstrainedValue
+  readonly localRepositoryStateLookup: ReadonlyMap<
+    number,
+    ILocalRepositoryState
+  >
 }
 
 interface IWorktreeDropdownState {
@@ -53,6 +59,13 @@ export class WorktreeDropdown extends React.Component<
     const previousWorktreeRepo = this.state.worktreeAddedRepo
 
     dispatcher.closeFoldout(FoldoutType.Worktree)
+
+    const { allWorktrees } = this.props.repositoryState.worktreesState
+    const mainWorktree = allWorktrees.find(wt => wt.type === 'main')
+
+    if (mainWorktree) {
+      setPreferredWorktreePath(mainWorktree.path, worktree.path)
+    }
 
     const existingRepo = repositories.find(
       r => r instanceof Repository && normalizePath(r.path) === worktreePath
@@ -94,6 +107,7 @@ export class WorktreeDropdown extends React.Component<
       isLocked: worktree.isLocked,
       onRenameWorktree: this.onRenameWorktree,
       onRemoveWorktree: this.onRemoveWorktree,
+      onCopyPath: path => this.props.dispatcher.copyPathToClipboard(path),
     })
 
     showContextualMenu(items)
@@ -110,14 +124,38 @@ export class WorktreeDropdown extends React.Component<
 
   private onRemoveWorktree = (path: string) => {
     this.props.dispatcher.closeFoldout(FoldoutType.Worktree)
+
+    const { repositories, localRepositoryStateLookup } = this.props
+    const normalizedPath = normalizePath(path)
+    const matchingRepo = repositories.find(
+      r => r instanceof Repository && normalizePath(r.path) === normalizedPath
+    )
+    const repoState =
+      matchingRepo instanceof Repository
+        ? localRepositoryStateLookup.get(matchingRepo.id)
+        : undefined
+    const changedFilesCount = repoState?.changedFilesCount ?? 0
+
+    if (changedFilesCount > 0) {
+      this.props.dispatcher.showPopup({
+        type: PopupType.CantDeleteWorktreeUncommittedChanges,
+        worktreePath: path,
+      })
+      return
+    }
+
     this.props.dispatcher.showPopup({
       type: PopupType.DeleteWorktree,
       repository: this.props.repository,
       worktreePath: path,
+      storedRepositoryToRemove:
+        matchingRepo instanceof Repository ? matchingRepo : null,
+      isDeletingCurrentWorktree:
+        normalizePath(this.props.repository.path) === normalizedPath,
     })
   }
 
-  private onCreateNewWorktree = () => {
+  private onAddNewWorktree = () => {
     this.props.dispatcher.closeFoldout(FoldoutType.Worktree)
     this.props.dispatcher.showPopup({
       type: PopupType.AddWorktree,
@@ -143,7 +181,7 @@ export class WorktreeDropdown extends React.Component<
         filterText={this.state.filterText}
         onFilterTextChanged={this.onFilterTextChanged}
         canCreateNewWorktree={true}
-        onCreateNewWorktree={this.onCreateNewWorktree}
+        onAddNewWorktree={this.onAddNewWorktree}
         onWorktreeContextMenu={this.onWorktreeContextMenu}
       />
     )
@@ -178,6 +216,7 @@ export class WorktreeDropdown extends React.Component<
       isLocked: currentWorktree.isLocked,
       onRenameWorktree: this.onRenameWorktree,
       onRemoveWorktree: this.onRemoveWorktree,
+      onCopyPath: path => this.props.dispatcher.copyPathToClipboard(path),
     })
 
     showContextualMenu(items)

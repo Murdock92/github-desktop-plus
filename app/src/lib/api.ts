@@ -3970,20 +3970,24 @@ const isKnownThirdPartyHost = (hostname: string) => {
  * Determines whether a given remote URL belongs to a trusted host.
  */
 export function isTrustedRemoteHost(url: string) {
-  const { protocol, host } = new window.URL(url)
+  try {
+    const { protocol, host } = new window.URL(url)
 
-  if (protocol !== 'https:') {
+    if (protocol !== 'https:') {
+      return false
+    }
+
+    // We must explicitly allow github.com for users that are not logged-in,
+    // as it is not part of the knowThirdPartyHosts constant.
+    if (host === 'github.com' || host.endsWith('.github.com')) {
+      return true
+    }
+
+    // Check known third party hosts.
+    return isKnownThirdPartyHost(host)
+  } catch {
     return false
   }
-
-  // We must explicitly allow github.com for users that are not logged-in,
-  // as it is not part of the knowThirdPartyHosts constant.
-  if (host === 'github.com' || host.endsWith('.github.com')) {
-    return true
-  }
-
-  // Check known third party hosts.
-  return isKnownThirdPartyHost(host)
 }
 
 /**

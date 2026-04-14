@@ -30,6 +30,10 @@ import {
   isRepositoryWithGitHubRepository,
 } from '../models/repository'
 import { Branch } from '../models/branch'
+import {
+  getDiffFontFamilyCssValue,
+  getDiffLineHeight,
+} from '../models/diff-font'
 import { PreferencesTab } from '../models/preferences'
 import { findItemByAccessKey, itemIsSelectable } from '../models/app-menu'
 import { Account, isDotComAccount } from '../models/account'
@@ -44,6 +48,7 @@ import { RepositoryView } from './repository'
 import { RenameBranch } from './rename-branch'
 import {
   CantDeleteCurrentBranch,
+  CantDeleteCurrentBranchUncommittedChanges,
   DeleteBranch,
   DeleteRemoteBranch,
 } from './delete-branch'
@@ -212,6 +217,8 @@ import { CommitProgress } from './commit-progress/commit-progress'
 import { AddWorktreeDialog } from './worktrees/add-worktree-dialog'
 import { RenameWorktreeDialog } from './worktrees/rename-worktree-dialog'
 import { DeleteWorktreeDialog } from './worktrees/delete-worktree-dialog'
+import { CantDeleteWorktreeUncommittedChanges } from './worktrees/cant-delete-worktree-uncommitted-changes-dialog'
+import { getEditorOverrideLabel } from '../models/editor-override'
 
 const MinuteInMilliseconds = 1000 * 60
 const HourInMilliseconds = MinuteInMilliseconds * 60
@@ -439,6 +446,8 @@ export class App extends React.Component<IAppProps, IAppState> {
     }
 
     switch (name) {
+      case 'open-new-window':
+        return this.openRepositoryInNewWindow(this.getRepository())
       case 'push':
         return this.push()
       case 'force-push':
@@ -479,6 +488,8 @@ export class App extends React.Component<IAppProps, IAppState> {
         return this.stashAllChanges()
       case 'show-preferences':
         return this.props.dispatcher.showPopup({ type: PopupType.Preferences })
+      case 'show-repository-preferences':
+        return this.showRepositoryPreferences()
       case 'open-working-directory':
         return this.openCurrentRepositoryWorkingDirectory()
       case 'update-branch-with-contribution-target-branch':
@@ -651,7 +662,7 @@ export class App extends React.Component<IAppProps, IAppState> {
     // Disable autoupdates so that the app doesn't revert to the desktop/desktop upstream whenever there is an update.
   }
 
-  private updateBranchWithContributionTargetBranch() {
+  private async updateBranchWithContributionTargetBranch() {
     const { selectedState } = this.state
     if (
       selectedState == null ||
@@ -669,6 +680,8 @@ export class App extends React.Component<IAppProps, IAppState> {
     if (!contributionTargetDefaultBranch) {
       return
     }
+
+    await this.props.dispatcher.fetch(repository, FetchType.UserInitiatedTask)
 
     this.props.dispatcher.initializeMergeOperation(
       repository,
@@ -1413,7 +1426,14 @@ export class App extends React.Component<IAppProps, IAppState> {
    * Gets a label string for the currently selected external editor, or
    * `undefined` if the user has selected a custom editor.
    */
-  private get externalEditorLabel() {
+  private getExternalEditorLabel(repo: Repository | CloningRepository) {
+    if (repo instanceof Repository && repo.customEditorOverride) {
+      return getEditorOverrideLabel(repo.customEditorOverride)
+    }
+    return this.defaultExternalEditorLabel
+  }
+
+  private get defaultExternalEditorLabel() {
     return this.state.useCustomEditor
       ? undefined
       : this.state.selectedExternalEditor ?? undefined
@@ -1585,6 +1605,8 @@ export class App extends React.Component<IAppProps, IAppState> {
             dispatcher={this.props.dispatcher}
             repository={popup.repository}
             branch={popup.branch}
+            accounts={this.state.accounts}
+            cachedRepoRulesets={this.state.cachedRepoRulesets}
             onDismissed={onPopupDismissedFn}
           />
         )
@@ -1594,6 +1616,14 @@ export class App extends React.Component<IAppProps, IAppState> {
             key="cant-delete-current-branch"
             branchToDelete={popup.branchToDelete}
             blockedByBranch={popup.blockedByBranch}
+            onDismissed={onPopupDismissedFn}
+          />
+        )
+      case PopupType.CantDeleteCurrentBranchUncommittedChanges:
+        return (
+          <CantDeleteCurrentBranchUncommittedChanges
+            key="cant-delete-current-branch-uncommitted-changes"
+            branchToDelete={popup.branchToDelete}
             onDismissed={onPopupDismissedFn}
           />
         )
@@ -1690,6 +1720,7 @@ export class App extends React.Component<IAppProps, IAppState> {
             selectedExternalEditor={this.state.selectedExternalEditor}
             useWindowsOpenSSH={this.state.useWindowsOpenSSH}
             showCommitLengthWarning={this.state.showCommitLengthWarning}
+            showCommitAuthorInfo={this.state.showCommitAuthorInfo}
             notificationsEnabled={this.state.notificationsEnabled}
             optOutOfUsageTracking={this.state.optOutOfUsageTracking}
             useExternalCredentialHelper={this.state.useExternalCredentialHelper}
@@ -1698,6 +1729,8 @@ export class App extends React.Component<IAppProps, IAppState> {
             selectedShell={this.state.selectedShell}
             selectedTheme={this.state.selectedTheme}
             selectedTabSize={this.state.selectedTabSize}
+            selectedDiffFontSize={this.state.selectedDiffFontSize}
+            selectedDiffFontFamily={this.state.selectedDiffFontFamily}
             useCustomEditor={this.state.useCustomEditor}
             customEditor={this.state.customEditor}
             useCustomShell={this.state.useCustomShell}
@@ -1706,6 +1739,8 @@ export class App extends React.Component<IAppProps, IAppState> {
             titleBarStyle={this.state.titleBarStyle}
             showRecentRepositories={this.state.showRecentRepositories}
             showWorktrees={this.state.showWorktrees}
+            showWorktreesInSidebar={this.state.showWorktreesInSidebar}
+            showCompareTab={this.state.showCompareTab}
             repositoryIndicatorsEnabled={this.state.repositoryIndicatorsEnabled}
             hideWindowOnQuit={this.state.hideWindowOnQuit}
             onEditGlobalGitConfig={this.editGlobalGitConfig}
@@ -1715,6 +1750,7 @@ export class App extends React.Component<IAppProps, IAppState> {
             branchSortOrder={this.state.branchSortOrder}
             commitDateDisplay={this.state.commitDateDisplay}
             graphMaxLanes={this.state.graphMaxLanes}
+            copyPathNormalization={this.state.copyPathNormalization}
           />
         )
       case PopupType.RepositorySettings: {
@@ -2778,11 +2814,21 @@ export class App extends React.Component<IAppProps, IAppState> {
             key="delete-worktree"
             repository={popup.repository}
             worktreePath={popup.worktreePath}
+            storedRepositoryToRemove={popup.storedRepositoryToRemove}
+            isDeletingCurrentWorktree={popup.isDeletingCurrentWorktree}
             dispatcher={this.props.dispatcher}
             onDismissed={onPopupDismissedFn}
           />
         )
       }
+      case PopupType.CantDeleteWorktreeUncommittedChanges:
+        return (
+          <CantDeleteWorktreeUncommittedChanges
+            key="cant-delete-worktree-uncommitted-changes"
+            worktreePath={popup.worktreePath}
+            onDismissed={onPopupDismissedFn}
+          />
+        )
       default:
         return assertNever(popup, `Unknown popup type: ${popup}`)
     }
@@ -3108,9 +3154,14 @@ export class App extends React.Component<IAppProps, IAppState> {
 
     const { useCustomShell, selectedShell } = this.state
     const filterText = this.state.repositoryFilterText
-    const repositories = this.state.repositories.filter(
-      r => !(r instanceof Repository && r.isLinkedWorktree)
-    )
+    const repositories = this.state.showWorktreesInSidebar
+      ? [...this.state.repositories]
+      : this.state.repositories.filter(
+          r => !(r instanceof Repository && r.isLinkedWorktree)
+        )
+    const localRepositoryStateLookup = this.state.showWorktreesInSidebar
+      ? new Map(this.state.localRepositoryStateLookup)
+      : this.state.localRepositoryStateLookup
     return (
       <RepositoriesList
         filterText={filterText}
@@ -3120,7 +3171,7 @@ export class App extends React.Component<IAppProps, IAppState> {
         repositories={repositories}
         recentRepositories={this.state.recentRepositories}
         showRecentRepositories={this.state.showRecentRepositories}
-        localRepositoryStateLookup={this.state.localRepositoryStateLookup}
+        localRepositoryStateLookup={localRepositoryStateLookup}
         askForConfirmationOnRemoveRepository={
           this.state.askForConfirmationOnRepositoryRemoval
         }
@@ -3130,10 +3181,11 @@ export class App extends React.Component<IAppProps, IAppState> {
         onOpenInShell={this.openInShell}
         onShowRepository={this.showRepository}
         onOpenInExternalEditor={this.openInExternalEditor}
-        externalEditorLabel={this.externalEditorLabel}
+        externalEditorLabel={this.defaultExternalEditorLabel}
         shellLabel={useCustomShell ? undefined : selectedShell}
         dispatcher={this.props.dispatcher}
         showBranchNameInRepoList={this.state.showBranchNameInRepoList}
+        showWorktreesInSidebar={this.state.showWorktreesInSidebar}
       />
     )
   }
@@ -3161,13 +3213,23 @@ export class App extends React.Component<IAppProps, IAppState> {
   }
 
   private openRepositoryInNewWindow = (
-    repository: Repository | CloningRepository
+    repository: Repository | CloningRepository | null
   ) => {
     if (!(repository instanceof Repository) || repository.missing) {
       return
     }
 
     openRepositoryInNewWindow(repository.path)
+  }
+
+  private showRepositoryPreferences = () => {
+    const repository = this.getRepository()
+    if (repository instanceof Repository) {
+      this.props.dispatcher.showPopup({
+        type: PopupType.RepositorySettings,
+        repository,
+      })
+    }
   }
 
   private getOpenFileInExternalEditorHandler(repository: Repository) {
@@ -3262,7 +3324,7 @@ export class App extends React.Component<IAppProps, IAppState> {
     if (repository) {
       const alias = repository instanceof Repository ? repository.alias : null
       icon = iconForRepository(repository)
-      title = alias ?? repository.name
+      title = (alias ?? repository.name) + this.getWorktreeSuffix(repository)
     } else if (this.state.repositories.length > 0) {
       icon = octicons.repo
       title = __DARWIN__ ? 'Select a Repository' : 'Select a repository'
@@ -3311,10 +3373,32 @@ export class App extends React.Component<IAppProps, IAppState> {
     )
   }
 
+  private getWorktreeSuffix(
+    repository: Repository | CloningRepository
+  ): string {
+    // If the worktrees dropdown is enabled, there is no need to add a suffix to the repository name
+    if (
+      this.state.showWorktrees ||
+      !(repository instanceof Repository) ||
+      !repository.isLinkedWorktree
+    ) {
+      return ''
+    }
+    const worktreeName = Path.basename(repository.path)
+    return ` (${worktreeName})`
+  }
+
   private onRepositoryToolbarButtonContextMenu = () => {
     const repository = this.state.selectedState?.repository
     if (repository === undefined) {
       return
+    }
+
+    const onAddNewWorktree = (repository: Repository) => {
+      this.props.dispatcher.showPopup({
+        type: PopupType.AddWorktree,
+        repository,
+      })
     }
 
     const onChangeRepositoryAlias = (repository: Repository) => {
@@ -3346,7 +3430,9 @@ export class App extends React.Component<IAppProps, IAppState> {
       onOpenInExternalEditor: this.openInExternalEditor,
       askForConfirmationOnRemoveRepository:
         this.state.askForConfirmationOnRepositoryRemoval,
-      externalEditorLabel: this.externalEditorLabel,
+      showWorktreesInSidebar: this.state.showWorktreesInSidebar,
+      externalEditorLabel: this.getExternalEditorLabel(repository),
+      onAddNewWorktree: onAddNewWorktree,
       onChangeRepositoryAlias: onChangeRepositoryAlias,
       onRemoveRepositoryAlias: onRemoveRepositoryAlias,
       onChangeRepositoryGroupName: onChangeRepositoryGroupName,
@@ -3356,6 +3442,7 @@ export class App extends React.Component<IAppProps, IAppState> {
       shellLabel: this.state.useCustomShell
         ? undefined
         : this.state.selectedShell,
+      onCopyRepoPath: path => this.props.dispatcher.copyPathToClipboard(path),
     })
 
     showContextualMenu(items)
@@ -3597,6 +3684,7 @@ export class App extends React.Component<IAppProps, IAppState> {
         enableFocusTrap={enableFocusTrap}
         repositories={this.state.repositories}
         worktreeDropdownWidth={this.state.worktreeDropdownWidth}
+        localRepositoryStateLookup={this.state.localRepositoryStateLookup}
       />
     )
   }
@@ -3752,7 +3840,9 @@ export class App extends React.Component<IAppProps, IAppState> {
           isExternalEditorAvailable={
             state.useCustomEditor || state.selectedExternalEditor !== null
           }
-          externalEditorLabel={this.externalEditorLabel}
+          externalEditorLabel={this.getExternalEditorLabel(
+            selectedState.repository
+          )}
           resolvedExternalEditor={state.resolvedExternalEditor}
           onOpenInExternalEditor={this.onOpenInExternalEditor}
           appMenu={state.appMenuState[0]}
@@ -3763,9 +3853,11 @@ export class App extends React.Component<IAppProps, IAppState> {
           aheadBehindStore={this.props.aheadBehindStore}
           commitSpellcheckEnabled={this.state.commitSpellcheckEnabled}
           showCommitLengthWarning={this.state.showCommitLengthWarning}
+          showCommitAuthorInfo={this.state.showCommitAuthorInfo}
           onCherryPick={this.startCherryPickWithoutBranch}
           pullRequestSuggestedNextAction={state.pullRequestSuggestedNextAction}
           showChangesFilter={state.showChangesFilter}
+          showCompareTab={this.state.showCompareTab}
           shouldShowGenerateCommitMessageCallOut={
             !this.state.commitMessageGenerationButtonClicked
           }
@@ -3822,13 +3914,19 @@ export class App extends React.Component<IAppProps, IAppState> {
       : this.state.currentTheme
 
     const currentTabSize = this.state.selectedTabSize
+    const appStyle = {
+      tabSize: currentTabSize,
+      '--diff-font-size': `${this.state.selectedDiffFontSize}px`,
+      '--diff-font-family': getDiffFontFamilyCssValue(
+        this.state.selectedDiffFontFamily
+      ),
+      '--diff-line-height': `${getDiffLineHeight(
+        this.state.selectedDiffFontSize
+      )}px`,
+    } as React.CSSProperties
 
     return (
-      <div
-        id="desktop-app-chrome"
-        className={className}
-        style={{ tabSize: currentTabSize }}
-      >
+      <div id="desktop-app-chrome" className={className} style={appStyle}>
         <AppTheme theme={currentTheme} />
         {this.renderTitlebar()}
         {this.state.showWelcomeFlow
@@ -3845,7 +3943,7 @@ export class App extends React.Component<IAppProps, IAppState> {
   }
 
   private onSelectionChanged = (repository: Repository | CloningRepository) => {
-    this.props.dispatcher.selectRepository(repository)
+    this.props.dispatcher.selectRepository(repository, true)
     this.props.dispatcher.closeFoldout(FoldoutType.Repository)
   }
 

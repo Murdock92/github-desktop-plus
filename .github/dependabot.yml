@@ -13,6 +13,5 @@ updates:
       - dependency-name: 'electron-builder'
       - dependency-name: 'electron-packager'
       - dependency-name: 'electron-installer-*'
-      - dependency-name: 'xvfb-maybe'
       - dependency-name: 'patch-package'
       - dependency-name: 'postinstall-postinstall'

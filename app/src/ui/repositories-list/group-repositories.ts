@@ -1,18 +1,22 @@
 import {
   Repository,
   ILocalRepositoryState,
-  nameOf,
   isRepositoryWithGitHubRepository,
   RepositoryWithGitHubRepository,
 } from '../../models/repository'
 import { CloningRepository } from '../../models/cloning-repository'
 import { getHTMLURL } from '../../lib/api'
-import { caseInsensitiveCompare, compare } from '../../lib/compare'
+import { compare } from '../../lib/compare'
 import { IFilterListGroup, IFilterListItem } from '../lib/filter-list'
 import { IAheadBehind } from '../../models/branch'
 import { assertNever } from '../../lib/fatal-error'
 import { isGHE, isGHES } from '../../lib/endpoint-capabilities'
 import { Owner } from '../../models/owner'
+import { normalizePath } from '../../lib/helpers/path'
+import {
+  getRepositoryListTitle,
+  toSortedRepositoryListItems,
+} from './worktree-list-items'
 
 export type RepositoryListGroup = (
   | {
@@ -57,12 +61,23 @@ export type Repositoryish = Repository | CloningRepository
 export interface IRepositoryListItem extends IFilterListItem {
   readonly text: ReadonlyArray<string>
   readonly id: string
+  readonly title: string
   readonly repository: Repositoryish
   readonly needsDisambiguation: boolean
   readonly aheadBehind: IAheadBehind | null
   readonly changedFilesCount: number
   readonly branchName: string | null
   readonly defaultBranchName: string | null
+  readonly isNestedWorktree: boolean
+  readonly mainWorktreeName: string | null
+  readonly isVirtualLinkedWorktree: boolean
+  readonly isPrunableWorktree: boolean
+  readonly worktreePath: string | null
+  readonly sourceRepository: Repository | null
+}
+
+interface IGroupRepositoriesOptions {
+  readonly showWorktreesInSidebar?: boolean
 }
 
 const recentRepositoriesThreshold = 7
@@ -97,11 +112,24 @@ type RepoGroupItem = { group: RepositoryListGroup; repos: Repositoryish[] }
 export function groupRepositories(
   repositories: ReadonlyArray<Repositoryish>,
   localRepositoryStateLookup: ReadonlyMap<number, ILocalRepositoryState>,
-  recentRepositories: ReadonlyArray<number>
+  recentRepositories: ReadonlyArray<number>,
+  options: IGroupRepositoriesOptions = {}
 ): ReadonlyArray<IFilterListGroup<IRepositoryListItem, RepositoryListGroup>> {
   const includeRecentGroup = repositories.length > recentRepositoriesThreshold
   const recentSet = includeRecentGroup ? new Set(recentRepositories) : undefined
   const groups = new Map<string, RepoGroupItem>()
+  const repositoryByPath = new Map<string, Repository>()
+  const storedRepositoryPaths = new Set<string>()
+
+  for (const repository of repositories) {
+    if (!(repository instanceof Repository)) {
+      continue
+    }
+
+    const normalizedPath = normalizePath(repository.path)
+    repositoryByPath.set(normalizedPath, repository)
+    storedRepositoryPaths.add(normalizedPath)
+  }
 
   const addToGroup = (group: RepositoryListGroup, repo: Repositoryish) => {
     const key = getGroupKey(group)
@@ -123,29 +151,31 @@ export function groupRepositories(
   }
 
   return Array.from(groups)
-    .sort(([xKey], [yKey]) => compare(xKey, yKey))
+    .sort(([xKey], [yKey]) => compare(xKey.toLowerCase(), yKey.toLowerCase()))
     .map(([, { group, repos }]) => ({
       identifier: group,
       items: toSortedListItems(
         group,
         repos,
         localRepositoryStateLookup,
-        groups
+        groups,
+        repositoryByPath,
+        storedRepositoryPaths,
+        options
       ),
     }))
 }
-
-// Returns the display title for a repository, which is either the alias
-// (if available) or the name.
-const getDisplayTitle = (r: Repositoryish) =>
-  r instanceof Repository && r.alias != null ? r.alias : r.name
 
 const toSortedListItems = (
   group: RepositoryListGroup,
   repositories: ReadonlyArray<Repositoryish>,
   localRepositoryStateLookup: ReadonlyMap<number, ILocalRepositoryState>,
-  groups: Map<string, RepoGroupItem>
+  groups: Map<string, RepoGroupItem>,
+  repositoryByPath: ReadonlyMap<string, Repository>,
+  storedRepositoryPaths: ReadonlySet<string>,
+  options: IGroupRepositoriesOptions
 ): IRepositoryListItem[] => {
+  const showWorktreesInSidebar = options.showWorktreesInSidebar ?? false
   const groupNames = new Map<string, number>()
   const allNames = new Map<string, number>()
 
@@ -156,39 +186,23 @@ const toSortedListItems = (
       continue
     }
 
-    for (const title of groupItem.repos.map(getDisplayTitle)) {
+    for (const title of groupItem.repos.map(repo =>
+      getRepositoryListTitle(repo, showWorktreesInSidebar)
+    )) {
       allNames.set(title, (allNames.get(title) ?? 0) + 1)
       if (groupItem.group === group) {
         groupNames.set(title, (groupNames.get(title) ?? 0) + 1)
       }
     }
   }
-
-  return repositories
-    .map(r => {
-      const repoState = localRepositoryStateLookup.get(r.id)
-      const title = getDisplayTitle(r)
-
-      return {
-        text: r instanceof Repository ? [title, nameOf(r)] : [title],
-        id: r.id.toString(),
-        repository: r,
-        needsDisambiguation:
-          // If the repository is in the enterprise group and has a duplicate
-          // name in the group, we need to disambiguate it. We don't have to
-          // disambiguate repositories in the 'dotcom' group because they are
-          // already grouped by owner. If the repository is in the 'recent'
-          // group and has a duplicate name in any group, we need to
-          // disambiguate it.
-          ((groupNames.get(title) ?? 0) > 1 && group.kind === 'enterprise') ||
-          ((allNames.get(title) ?? 0) > 1 && group.kind === 'recent'),
-        aheadBehind: repoState?.aheadBehind ?? null,
-        changedFilesCount: repoState?.changedFilesCount ?? 0,
-        branchName: repoState?.branchName ?? null,
-        defaultBranchName: repoState?.defaultBranchName ?? null,
-      }
-    })
-    .sort(({ repository: x }, { repository: y }) =>
-      caseInsensitiveCompare(getDisplayTitle(x), getDisplayTitle(y))
-    )
+  return toSortedRepositoryListItems({
+    group,
+    repositories,
+    localRepositoryStateLookup,
+    groupNames,
+    allNames,
+    repositoryByPath,
+    storedRepositoryPaths,
+    showWorktreesInSidebar,
+  })
 }

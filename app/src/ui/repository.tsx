@@ -64,6 +64,7 @@ interface IRepositoryViewProps {
   readonly focusCommitMessage: boolean
   readonly commitSpellcheckEnabled: boolean
   readonly showCommitLengthWarning: boolean
+  readonly showCommitAuthorInfo: boolean
   readonly accounts: ReadonlyArray<Account>
   readonly shouldShowGenerateCommitMessageCallOut: boolean
 
@@ -127,6 +128,9 @@ interface IRepositoryViewProps {
 
   /** Whether or not to show the changes filter */
   readonly showChangesFilter: boolean
+
+  /** Whether or not to show the Compare tab */
+  readonly showCompareTab: boolean
 
   /**
    * Whether there are any hooks in the repository that could be
@@ -251,9 +255,11 @@ export class RepositoryView extends React.Component<
           <span>History</span>
         </div>
 
-        <div className="with-indicator" id="compare-tab">
-          <span>Compare</span>
-        </div>
+        {this.props.showCompareTab && (
+          <div className="with-indicator" id="compare-tab">
+            <span>Compare</span>
+          </div>
+        )}
       </TabBar>
     )
   }
@@ -345,6 +351,8 @@ export class RepositoryView extends React.Component<
         aheadBehind={this.props.state.aheadBehind}
         branch={branchName}
         commitAuthor={this.props.state.commitAuthor}
+        commitAuthorNameOrigin={this.props.state.commitAuthorNameOrigin}
+        commitAuthorEmailOrigin={this.props.state.commitAuthorEmailOrigin}
         emoji={this.props.emoji}
         mostRecentLocalCommit={mostRecentLocalCommit}
         issuesStore={this.props.issuesStore}
@@ -385,6 +393,7 @@ export class RepositoryView extends React.Component<
         }
         commitSpellcheckEnabled={this.props.commitSpellcheckEnabled}
         showCommitLengthWarning={this.props.showCommitLengthWarning}
+        showCommitAuthorInfo={this.props.showCommitAuthorInfo}
         showChangesFilter={this.props.showChangesFilter}
         hasCommitHooks={this.props.hasCommitHooks}
         skipCommitHooks={this.props.skipCommitHooks}
@@ -854,6 +863,10 @@ export class RepositoryView extends React.Component<
       this.props.repository,
       section
     )
+
+    if (section === RepositorySectionTab.Changes) {
+      this.focusChangesNeeded = true
+    }
   }
 
   private onTabClicked = (tab: Tab) => {
@@ -863,6 +876,9 @@ export class RepositoryView extends React.Component<
       this.props.repository,
       section
     )
+    if (section === RepositorySectionTab.Changes) {
+      this.focusChangesNeeded = true
+    }
     if (!!section) {
       this.props.dispatcher.updateCompareForm(this.props.repository, {
         filterText: '',

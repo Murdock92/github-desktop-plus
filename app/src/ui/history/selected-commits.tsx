@@ -1,5 +1,4 @@
 import * as React from 'react'
-import { clipboard } from 'electron'
 import * as Path from 'path'
 
 import { Repository } from '../../models/repository'
@@ -21,7 +20,6 @@ import {
   RevealInFileManagerLabel,
   OpenWithDefaultProgramLabel,
 } from '../lib/context-menu'
-import { EOL } from 'os'
 import { ThrottledScheduler } from '../lib/throttled-scheduler'
 
 import { Dispatcher } from '../dispatcher'
@@ -422,28 +420,29 @@ export class SelectedCommits extends React.Component<
         ? [
             {
               label: CopyFilePathLabel,
-              action: () => clipboard.writeText(fullPath),
+              action: () => this.props.dispatcher.copyPathToClipboard(fullPath),
             },
             {
               label: CopyRelativeFilePathLabel,
-              action: () => clipboard.writeText(Path.normalize(file.path)),
+              action: () =>
+                this.props.dispatcher.copyPathToClipboard(
+                  Path.normalize(file.path)
+                ),
             },
           ]
         : [
             {
               label: CopySelectedPathsLabel,
               action: () =>
-                clipboard.writeText(
-                  filesToCopy
-                    .map(f => Path.join(repository.path, f.path))
-                    .join(EOL)
+                this.props.dispatcher.copyPathsToClipboard(
+                  filesToCopy.map(f => Path.join(repository.path, f.path))
                 ),
             },
             {
               label: CopySelectedRelativePathsLabel,
               action: () =>
-                clipboard.writeText(
-                  filesToCopy.map(f => Path.normalize(f.path)).join(EOL)
+                this.props.dispatcher.copyPathsToClipboard(
+                  filesToCopy.map(f => Path.normalize(f.path))
                 ),
             },
           ]
