@@ -1,3 +1,4 @@
+import { parallelWithConcurrencyLimit } from '../promise'
 import { getLocalFontFamilies, isFontFamilyInstalled } from './installed-fonts'
 
 export async function getInstalledMonospaceFontFamilies(): Promise<string[]> {
@@ -10,8 +11,10 @@ export async function getInstalledMonospaceFontFamilies(): Promise<string[]> {
 }
 
 async function filterMonospaceFamilies(families: string[]): Promise<string[]> {
-  const results = await Promise.all(
-    families.map(family => isMonospaceFontFamily(family))
+  const results = await parallelWithConcurrencyLimit(
+    families,
+    family => isMonospaceFontFamily(family),
+    10
   )
   return families.filter((_, i) => results[i])
 }
@@ -22,20 +25,16 @@ async function isMonospaceFontFamily(family: string): Promise<boolean> {
     return false
   }
 
-  const font = `16px ${JSON.stringify(family)}`
+  const font = `24px ${JSON.stringify(family)}`
   try {
     await document.fonts.load(font)
   } catch {
     return false
   }
 
-  if (!document.fonts.check(font)) {
-    return false
-  }
-
   ctx.font = font
-  const a = ctx.measureText('.'.repeat(100)).width
-  const b = ctx.measureText('W'.repeat(100)).width
+  const a = ctx.measureText('i'.repeat(50)).width
+  const b = ctx.measureText('W'.repeat(50)).width
   return Math.abs(a - b) < 0.01
 }
 
