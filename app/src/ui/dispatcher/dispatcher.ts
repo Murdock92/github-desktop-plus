@@ -107,6 +107,7 @@ import { UncommittedChangesStrategy } from '../../models/uncommitted-changes-str
 import { BranchSortOrder } from '../../models/branch-sort-order'
 import { ShowBranchNameInRepoListSetting } from '../../models/show-branch-name-in-repo-list'
 import { CommitDateDisplay } from '../../models/commit-date-display'
+import { DiffFontFamily } from '../../models/diff-font'
 import { CopyPathNormalization } from '../../models/copy-path-normalization'
 import { IStashEntry } from '../../models/stash-entry'
 import { WorkflowPreferences } from '../../models/workflow-preferences'
@@ -2707,6 +2708,20 @@ export class Dispatcher {
    */
   public setSelectedTabSize(tabSize: number) {
     return this.appStore._setSelectedTabSize(tabSize)
+  }
+
+  /**
+   * Set the application-wide diff font size
+   */
+  public setSelectedDiffFontSize(diffFontSize: number) {
+    return this.appStore._setSelectedDiffFontSize(diffFontSize)
+  }
+
+  /**
+   * Set the application-wide diff font family
+   */
+  public setSelectedDiffFontFamily(diffFontFamily: DiffFontFamily) {
+    return this.appStore._setSelectedDiffFontFamily(diffFontFamily)
   }
   /*
    * Set the title bar style for the application

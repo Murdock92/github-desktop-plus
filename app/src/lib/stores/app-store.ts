@@ -194,6 +194,11 @@ import {
   CommitDateDisplay,
   defaultCommitDateDisplay,
 } from '../../models/commit-date-display'
+import {
+  defaultDiffFontFamily,
+  defaultDiffFontSize,
+  DiffFontFamily,
+} from '../../models/diff-font'
 import { WorkflowPreferences } from '../../models/workflow-preferences'
 import { TrashNameLabel } from '../../ui/lib/context-menu'
 import { getDefaultDir } from '../../ui/lib/default-dir'
@@ -484,6 +489,8 @@ const showCommitAuthorInfoKey = 'show-commit-author-info'
 
 export const tabSizeDefault: number = 4
 const tabSizeKey: string = 'tab-size'
+const diffFontSizeKey = 'diff-font-size'
+const diffFontFamilyKey = 'diff-font-family'
 
 const shellKey = 'shell'
 
@@ -658,6 +665,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
   private selectedTheme = ApplicationTheme.System
   private currentTheme: ApplicableTheme = ApplicationTheme.Light
   private selectedTabSize = tabSizeDefault
+  private selectedDiffFontSize = defaultDiffFontSize
+  private selectedDiffFontFamily = defaultDiffFontFamily
   private titleBarStyle: TitleBarStyle = 'native'
   private showRecentRepositories: boolean = true
   private showWorktrees: boolean = false
@@ -1251,6 +1260,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
       selectedTheme: this.selectedTheme,
       currentTheme: this.currentTheme,
       selectedTabSize: this.selectedTabSize,
+      selectedDiffFontSize: this.selectedDiffFontSize,
+      selectedDiffFontFamily: this.selectedDiffFontFamily,
       titleBarStyle: this.titleBarStyle,
       showRecentRepositories: this.showRecentRepositories,
       showWorktrees: this.showWorktrees,
@@ -2686,6 +2697,9 @@ export class AppStore extends TypedBaseStore<IAppState> {
     this.currentTheme = await getCurrentlyAppliedTheme()
 
     this.selectedTabSize = getNumber(tabSizeKey, tabSizeDefault)
+    this.selectedDiffFontSize = getNumber(diffFontSizeKey, defaultDiffFontSize)
+    this.selectedDiffFontFamily =
+      localStorage.getItem(diffFontFamilyKey) || defaultDiffFontFamily
 
     themeChangeMonitor.onThemeChanged(theme => {
       this.currentTheme = theme
@@ -8140,6 +8154,34 @@ export class AppStore extends TypedBaseStore<IAppState> {
       setNumber(tabSizeKey, tabSize)
       this.emitUpdate()
     }
+
+    return Promise.resolve()
+  }
+
+  /**
+   * Set the application-wide diff font size
+   */
+  public _setSelectedDiffFontSize(diffFontSize: number) {
+    if (!isNaN(diffFontSize)) {
+      this.selectedDiffFontSize = diffFontSize
+      setNumber(diffFontSizeKey, diffFontSize)
+      this.emitUpdate()
+    }
+
+    return Promise.resolve()
+  }
+
+  /**
+   * Set the application-wide diff font family
+   */
+  public _setSelectedDiffFontFamily(diffFontFamily: DiffFontFamily) {
+    if (this.selectedDiffFontFamily === diffFontFamily) {
+      return Promise.resolve()
+    }
+
+    this.selectedDiffFontFamily = diffFontFamily
+    localStorage.setItem(diffFontFamilyKey, diffFontFamily)
+    this.emitUpdate()
 
     return Promise.resolve()
   }

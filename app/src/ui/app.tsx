@@ -30,6 +30,10 @@ import {
   isRepositoryWithGitHubRepository,
 } from '../models/repository'
 import { Branch } from '../models/branch'
+import {
+  getDiffFontFamilyCssValue,
+  getDiffLineHeight,
+} from '../models/diff-font'
 import { PreferencesTab } from '../models/preferences'
 import { findItemByAccessKey, itemIsSelectable } from '../models/app-menu'
 import { Account, isDotComAccount } from '../models/account'
@@ -1699,6 +1703,8 @@ export class App extends React.Component<IAppProps, IAppState> {
             selectedShell={this.state.selectedShell}
             selectedTheme={this.state.selectedTheme}
             selectedTabSize={this.state.selectedTabSize}
+            selectedDiffFontSize={this.state.selectedDiffFontSize}
+            selectedDiffFontFamily={this.state.selectedDiffFontFamily}
             useCustomEditor={this.state.useCustomEditor}
             customEditor={this.state.customEditor}
             useCustomShell={this.state.useCustomShell}
@@ -3859,13 +3865,19 @@ export class App extends React.Component<IAppProps, IAppState> {
       : this.state.currentTheme
 
     const currentTabSize = this.state.selectedTabSize
+    const appStyle = {
+      tabSize: currentTabSize,
+      '--diff-font-size': `${this.state.selectedDiffFontSize}px`,
+      '--diff-font-family': getDiffFontFamilyCssValue(
+        this.state.selectedDiffFontFamily
+      ),
+      '--diff-line-height': `${getDiffLineHeight(
+        this.state.selectedDiffFontSize
+      )}px`,
+    } as React.CSSProperties
 
     return (
-      <div
-        id="desktop-app-chrome"
-        className={className}
-        style={{ tabSize: currentTabSize }}
-      >
+      <div id="desktop-app-chrome" className={className} style={appStyle}>
         <AppTheme theme={currentTheme} />
         {this.renderTitlebar()}
         {this.state.showWelcomeFlow
