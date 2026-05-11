@@ -42,7 +42,7 @@ function removeExistingSymlink(asAdmin: boolean) {
   }
 
   return new Promise<void>((resolve, reject) => {
-    fsAdmin.unlink(InstalledCLIPath, error => {
+    fsAdmin.unlink(InstalledCLIPath, (error: Error | null) => {
       if (error !== null) {
         reject(
           new Error(
@@ -65,7 +65,7 @@ function createDirectories(asAdmin: boolean) {
   }
 
   return new Promise<void>((resolve, reject) => {
-    fsAdmin.makeTree(path, error => {
+    fsAdmin.makeTree(path, (error: Error | null) => {
       if (error !== null) {
         reject(
           new Error(
@@ -86,7 +86,7 @@ function createNewSymlink(asAdmin: boolean) {
   }
 
   return new Promise<void>((resolve, reject) => {
-    fsAdmin.symlink(PackagedPath, InstalledCLIPath, error => {
+    fsAdmin.symlink(PackagedPath, InstalledCLIPath, (error: Error | null) => {
       if (error !== null) {
         reject(
           new Error(`Failed to symlink ${PackagedPath} to ${InstalledCLIPath}`)
