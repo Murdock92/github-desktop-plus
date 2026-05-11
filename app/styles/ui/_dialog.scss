@@ -519,13 +519,23 @@ dialog {
     width: 600px;
 
     .dialog-content {
-      $default-tab-height: 430px;
+      $default-tab-height: 440px;
       min-height: $default-tab-height;
 
       &.accounts-tab,
       &.appearance-tab {
         max-height: $default-tab-height;
         overflow: auto;
+      }
+
+      &.copilot-tab {
+        padding: 0;
+
+        .copilot-tab-content {
+          padding: var(--spacing-double);
+          max-height: $default-tab-height;
+          overflow: auto;
+        }
       }
     }
   }

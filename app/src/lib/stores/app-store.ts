@@ -1,4 +1,42 @@
 import * as Path from 'path'
+import { writeFile } from 'fs/promises'
+import {
+  defaultShowBranchNameInRepoListSetting,
+  ShowBranchNameInRepoListSetting,
+} from '../../models/show-branch-name-in-repo-list'
+import { TitleBarStyle } from '../../ui/lib/title-bar-style'
+import pLimit from 'p-limit'
+import {
+  IBranchNamePreset,
+  parseBranchNamePresets,
+} from '../../models/branch-preset'
+import {
+  BranchSortOrder,
+  DEFAULT_BRANCH_SORT_ORDER,
+} from '../../models/branch-sort-order'
+import {
+  CopyPathNormalization,
+  defaultCopyPathNormalization,
+} from '../../models/copy-path-normalization'
+import {
+  defaultDiffFontSize,
+  defaultDiffFontFamily,
+  DiffFontFamily,
+} from '../../models/diff-font'
+import { EditorOverride } from '../../models/editor-override'
+import { stageResolvedConflictFiles } from '../git/stage'
+import { normalizePath } from '../helpers/path'
+import {
+  getPreferredWorktreePath,
+  clearPreferredWorktreePath,
+} from '../worktree-preferences'
+import {
+  findSidebarWorktreeStateRepository,
+  getCurrentWorktreeEntryForRepository,
+  withSidebarWorktrees,
+  createSidebarStateFromStatus,
+  shouldRefreshSidebarWorktrees,
+} from './helpers/sidebar-worktrees'
 import {
   AccountsStore,
   CloningRepositoriesStore,
@@ -12,6 +50,20 @@ import {
   SignInStore,
   UpstreamRemoteName,
 } from '.'
+import type { CopilotFeature, CopilotModelSelections } from './copilot-store'
+import {
+  IBYOKProvider,
+  loadBYOKProviders,
+  saveBYOKProviders,
+  setBYOKSecret,
+  deleteBYOKSecret,
+  getBYOKSecret,
+  parseModelKey,
+} from '../copilot/byok'
+import type {
+  CopilotModelRequest,
+  CopilotProviderConfig,
+} from './copilot-store'
 import { Account, isDotComAccount, UnknownLogin } from '../../models/account'
 import { AppMenu, IMenu } from '../../models/app-menu'
 import { Author } from '../../models/author'
@@ -20,15 +72,15 @@ import { BranchesTab } from '../../models/branches-tab'
 import { CloneRepositoryTab } from '../../models/clone-repository-tab'
 import { CloningRepository } from '../../models/cloning-repository'
 import {
+  getPreferAbsoluteDates,
+  setPreferAbsoluteDates,
+} from '../../models/formatting-preferences'
+import {
   Commit,
-  CommitOneLine,
   ICommitContext,
+  CommitOneLine,
   shortenSHA,
 } from '../../models/commit'
-import {
-  DefaultCommitMessage,
-  ICommitMessage,
-} from '../../models/commit-message'
 import {
   DiffSelection,
   DiffSelectionType,
@@ -41,14 +93,6 @@ import {
   GitHubRepository,
   hasWritePermission,
 } from '../../models/github-repository'
-import { Popup, PopupType } from '../../models/popup'
-import {
-  ICheckoutProgress,
-  IFetchProgress,
-  IMultiCommitOperationProgress,
-  IRevertProgress,
-  Progress,
-} from '../../models/progress'
 import {
   defaultPullRequestSuggestedNextAction,
   PullRequest,
@@ -60,21 +104,33 @@ import {
   remoteEquals,
 } from '../../models/remote'
 import {
-  getNonForkGitHubRepository,
   ILocalRepositoryState,
-  isForkedRepositoryContributingToParent,
-  isRepositoryWithGitHubRepository,
   nameOf,
   Repository,
+  isRepositoryWithGitHubRepository,
   RepositoryWithGitHubRepository,
+  getNonForkGitHubRepository,
+  isForkedRepositoryContributingToParent,
 } from '../../models/repository'
 import {
-  AppFileStatusKind,
   CommittedFileChange,
   WorkingDirectoryFileChange,
   WorkingDirectoryStatus,
+  AppFileStatusKind,
 } from '../../models/status'
 import { TipState, tipEquals, IValidBranch } from '../../models/tip'
+import {
+  DefaultCommitMessage,
+  ICommitMessage,
+} from '../../models/commit-message'
+import {
+  Progress,
+  ICheckoutProgress,
+  IFetchProgress,
+  IRevertProgress,
+  IMultiCommitOperationProgress,
+} from '../../models/progress'
+import { Popup, PopupType } from '../../models/popup'
 import { themeChangeMonitor } from '../../ui/lib/theme-change-monitor'
 import { getAppPath } from '../../ui/lib/app-proxy'
 import {
@@ -84,59 +140,60 @@ import {
   getPersistedThemeName,
   setPersistedTheme,
 } from '../../ui/lib/application-theme'
-import { TitleBarStyle } from '../../ui/lib/title-bar-style'
 import {
   getAppMenu,
   getCurrentWindowState,
   getCurrentWindowZoomFactor,
-  getMainProcessConfig,
-  onShowInstallingUpdate,
-  quitApp,
-  updateMainProcessConfig,
-  sendCancelQuittingSync,
-  sendWillQuitEvenIfUpdatingSync,
-  setWindowZoomFactor,
-  updateAccounts,
   updatePreferredAppMenuItemLabels,
+  updateAccounts,
+  setWindowZoomFactor,
+  onShowInstallingUpdate,
+  sendWillQuitEvenIfUpdatingSync,
+  quitApp,
+  sendCancelQuittingSync,
+  getMainProcessConfig,
+  updateMainProcessConfig,
 } from '../../ui/main-process-proxy'
 import {
   API,
-  deleteToken,
   getAccountForEndpoint,
-  getEndpointForRepository,
-  IAPIComment,
-  IAPICreatePushProtectionBypassResponse,
-  IAPIFullRepository,
   IAPIOrganization,
+  getEndpointForRepository,
+  IAPIFullRepository,
+  IAPIComment,
   IAPIRepoRuleset,
+  deleteToken,
+  IAPICreatePushProtectionBypassResponse,
 } from '../api'
 import { shell } from '../app-shell'
 import {
-  ChangesSelectionKind,
-  ChangesWorkingDirectorySelection,
   CompareAction,
+  HistoryTabMode,
   Foldout,
   FoldoutType,
-  HistoryTabMode,
   IAppState,
-  IChangesState,
   ICompareBranch,
   ICompareFormUpdate,
-  ICompareState,
   ICompareToBranch,
-  IConstrainedValue,
   IDisplayHistory,
-  IFileListFilterState,
-  IMultiCommitOperationState,
-  IRepositoryState,
-  isCherryPickConflictState,
-  isMergeConflictState,
-  isRebaseConflictState,
   PossibleSelections,
   RepositorySectionTab,
   SelectionType,
+  IRepositoryState,
+  ChangesSelectionKind,
+  ChangesWorkingDirectorySelection,
+  isRebaseConflictState,
+  isCherryPickConflictState,
+  IFileListFilterState,
+  isMergeConflictState,
+  IMultiCommitOperationState,
+  ConflictState,
+  IConstrainedValue,
+  ICompareState,
   CommitOptions,
+  IChangesState,
 } from '../app-state'
+import type { ModelInfo } from '@github/copilot-sdk'
 import {
   findEditorOrDefault,
   getAvailableEditors,
@@ -146,99 +203,6 @@ import {
 } from '../editors'
 import { assertNever, fatalError, forceUnwrap } from '../fatal-error'
 
-import { GitError as DugiteError } from 'dugite'
-import { parseRemote } from '../../lib/remote-parsing'
-import { Banner, BannerType } from '../../models/banner'
-import {
-  IBranchNamePreset,
-  parseBranchNamePresets,
-} from '../../models/branch-preset'
-import { ComputedAction } from '../../models/computed-action'
-import { DragElement } from '../../models/drag-drop'
-import { EditorOverride } from '../../models/editor-override'
-import { ILastThankYou } from '../../models/last-thank-you'
-import { ManualConflictResolution } from '../../models/manual-conflict-resolution'
-import { MenuLabelsEvent } from '../../models/menu-labels'
-import { MergeTreeResult } from '../../models/merge'
-import {
-  MultiCommitOperationDetail,
-  MultiCommitOperationKind,
-  MultiCommitOperationStep,
-  MultiCommitOperationStepKind,
-} from '../../models/multi-commit-operation'
-import { RepoRulesInfo } from '../../models/repo-rules'
-import { RetryAction, RetryActionType } from '../../models/retry-actions'
-import { IStashEntry, StashedChangesLoadStates } from '../../models/stash-entry'
-import {
-  isValidTutorialStep,
-  orderedTutorialSteps,
-  TutorialStep,
-} from '../../models/tutorial-step'
-import {
-  defaultUncommittedChangesStrategy,
-  UncommittedChangesStrategy,
-} from '../../models/uncommitted-changes-strategy'
-import {
-  defaultShowBranchNameInRepoListSetting,
-  ShowBranchNameInRepoListSetting,
-} from '../../models/show-branch-name-in-repo-list'
-import {
-  CopyPathNormalization,
-  defaultCopyPathNormalization,
-} from '../../models/copy-path-normalization'
-import {
-  BranchSortOrder,
-  DEFAULT_BRANCH_SORT_ORDER,
-} from '../../models/branch-sort-order'
-import {
-  CommitDateDisplay,
-  defaultCommitDateDisplay,
-} from '../../models/commit-date-display'
-import {
-  defaultDiffFontFamily,
-  defaultDiffFontSize,
-  DiffFontFamily,
-} from '../../models/diff-font'
-import { WorkflowPreferences } from '../../models/workflow-preferences'
-import { TrashNameLabel } from '../../ui/lib/context-menu'
-import { getDefaultDir } from '../../ui/lib/default-dir'
-import {
-  getShowSideBySideDiff,
-  setShowSideBySideDiff,
-  ShowSideBySideDiffDefault,
-} from '../../ui/lib/diff-mode'
-import { pathExists } from '../../ui/lib/path-exists'
-import { updateStore } from '../../ui/lib/update-store'
-import {
-  getPreferredWorktreePath,
-  clearPreferredWorktreePath,
-} from '../worktree-preferences'
-import { normalizePath } from '../helpers/path'
-import { resizableComponentClass } from '../../ui/resizable'
-import { BypassReasonType } from '../../ui/secret-scanning/bypass-push-protection-dialog'
-import { findContributionTargetDefaultBranch } from '../branch'
-import { IRefCheck } from '../ci-checks/ci-checks'
-import { clamp } from '../clamp'
-import { compare } from '../compare'
-import {
-  ICustomIntegration,
-  migratedCustomIntegration,
-} from '../custom-integration'
-import { ExternalEditorError, suggestedExternalEditor } from '../editors/shared'
-import { isAttributableEmailFor } from '../email'
-import { Emoji } from '../emoji'
-import { EndpointToken } from '../endpoint-token'
-import { arrayEquals } from '../equality'
-import {
-  CheckoutError,
-  DiscardChangesError,
-  ErrorWithMetadata,
-  StashChangesError,
-} from '../error-with-metadata'
-import {
-  enableCopilotSdkCommitMessageGeneration,
-  enableCustomIntegration,
-} from '../feature-flag'
 import { formatCommitMessage } from '../format-commit-message'
 import {
   getAccountForCommitMessageGeneration,
@@ -246,120 +210,77 @@ import {
 } from '../get-account-for-repository'
 import {
   abortMerge,
-  abortRebase,
   addRemote,
-  appendIgnoreFile,
-  appendIgnoreRule,
   checkoutBranch,
-  checkoutCommit,
-  continueRebase,
   createCommit,
+  getAuthorIdentity,
+  getChangedFiles,
+  getCommitDiff,
+  getMergeBase,
+  getRemotes,
+  getWorkingDirectoryDiff,
+  isCoAuthoredByTrailer,
+  pull as pullRepo,
+  push as pushRepo,
+  renameBranch,
+  saveGitIgnore,
+  appendIgnoreRule,
   createMergeCommit,
+  getBranchesPointedAt,
+  abortRebase,
+  continueRebase,
+  rebase,
+  PushOptions,
+  RebaseResult,
+  getRebaseSnapshot,
+  IStatusResult,
+  GitError,
+  MergeResult,
+  getBranchesDifferingFromUpstream,
   deleteLocalBranch,
   deleteRemoteBranch,
   fastForwardBranches,
-  getAuthorIdentity,
+  GitResetMode,
+  reset,
   getBranchAheadBehind,
-  getBranchesDifferingFromUpstream,
-  getBranchesPointedAt,
+  getRebaseInternalState,
+  getCommit,
+  appendIgnoreFile,
+  getRepositoryType,
+  RepositoryType,
+  getCommitRangeDiff,
+  getCommitRangeChangedFiles,
+  updateRemoteHEAD,
   getBranchMergeBaseChangedFiles,
   getBranchMergeBaseDiff,
-  getChangedFiles,
-  getCommit,
-  getCommitDiff,
-  getCommitRangeChangedFiles,
-  getCommitRangeDiff,
-  getFilesDiffText,
-  getGlobalConfigPath,
-  getMergeBase,
-  getRebaseInternalState,
-  getRebaseSnapshot,
-  getRemotes,
+  checkoutCommit,
   getRemoteURL,
-  getRepositoryType,
-  getWorkingDirectoryDiff,
-  GitError,
-  GitResetMode,
-  isCoAuthoredByTrailer,
-  IStatusResult,
-  MergeResult,
-  pull as pullRepo,
-  PushOptions,
-  push as pushRepo,
-  rebase,
-  RebaseResult,
-  renameBranch,
-  RepositoryType,
-  reset,
-  saveGitIgnore,
-  unstageAll,
-  updateRemoteHEAD,
+  getGlobalConfigPath,
+  getFilesDiffText,
   TerminalOutput,
   HookProgress,
+  getConfigValueWithOrigin,
+  IConfigValueOrigin,
+  listWorktrees,
+  unstageAll,
+  git,
 } from '../git'
-import { GitErrorContext } from '../git-error-context'
-import {
-  abortCherryPick,
-  cherryPick,
-  CherryPickResult,
-  continueCherryPick,
-  getCherryPickSnapshot,
-  isCherryPickHeadFound,
-} from '../git/cherry-pick'
 import {
   installGlobalLFSFilters,
   installLFSHooks,
   isUsingLFS,
 } from '../git/lfs'
-import { getConfigValueWithOrigin, IConfigValueOrigin } from '../git/config'
-import { determineMergeability } from '../git/merge-tree'
-import { listWorktrees } from '../git/worktree'
-import { reorder } from '../git/reorder'
-import { squash } from '../git/squash'
-import { stageResolvedConflictFiles } from '../git/stage'
-import {
-  createDesktopStashEntry,
-  dropDesktopStashEntry,
-  getLastDesktopStashEntryForBranch,
-  moveStashEntry,
-  popStashEntry,
-} from '../git/stash'
-import { sendNonFatalException } from '../helpers/non-fatal-exception'
-import {
-  findAssociatedPullRequest,
-  isPullRequestAssociatedWithBranch,
-} from '../helpers/pull-request-matching'
-import { isBranchPushable } from '../helpers/push-control'
-import { parseRepoRules, useRepoRulesLogic } from '../helpers/repo-rules'
 import { inferLastPushForRepository } from '../infer-last-push-for-repository'
-import * as ipcRenderer from '../ipc-renderer'
-import {
-  getBoolean,
-  getEnum,
-  getFloatNumber,
-  getNumber,
-  getNumberArray,
-  getObject,
-  setBoolean,
-  setNumber,
-  setNumberArray,
-  setObject,
-} from '../local-storage'
 import { updateMenuState } from '../menu-update'
 import { merge } from '../merge'
-import { isConflictsFlow } from '../multi-commit-operation'
-import { offsetFromNow } from '../offset-from'
-import { IOAuthAction } from '../parse-app-url'
-import { PopupManager } from '../popup-manager'
-import { promiseWithMinimumTimeout } from '../promise'
-import { readEmoji } from '../read-emoji'
-import { ForcePushBranchState, getCurrentBranchForcePushState } from '../rebase'
 import {
   IMatchedGitHubRepository,
-  matchExistingRepository,
   matchGitHubRepository,
+  matchExistingRepository,
   urlMatchesRemote,
 } from '../repository-matching'
+import { ForcePushBranchState, getCurrentBranchForcePushState } from '../rebase'
+import { RetryAction, RetryActionType } from '../../models/retry-actions'
 import {
   Default as DefaultShell,
   findShellOrDefault,
@@ -368,47 +289,158 @@ import {
   parse as parseShell,
   Shell,
 } from '../shells'
-import { UseWindowsOpenSSHKey } from '../ssh/ssh'
 import { ILaunchStats, StatsStore } from '../stats'
-import { getUntrackedFiles } from '../status'
+import { hasShownWelcomeFlow, markWelcomeFlowComplete } from '../welcome'
+import { WindowState } from '../window-state'
+import { TypedBaseStore } from './base-store'
+import { MergeTreeResult } from '../../models/merge'
+import { promiseWithMinimumTimeout } from '../promise'
+import { BackgroundFetcher } from './helpers/background-fetcher'
+import { RepositoryStateCache } from './repository-state-cache'
+import { readEmoji } from '../read-emoji'
+import { Emoji } from '../emoji'
+import { GitStoreCache } from './git-store-cache'
+import { GitErrorContext } from '../git-error-context'
+import {
+  setNumber,
+  setBoolean,
+  getBoolean,
+  getNumber,
+  getNumberArray,
+  setNumberArray,
+  getEnum,
+  getObject,
+  setObject,
+  getFloatNumber,
+} from '../local-storage'
+import { ExternalEditorError, suggestedExternalEditor } from '../editors/shared'
+import { ApiRepositoriesStore } from './api-repositories-store'
+import {
+  updateChangedFiles,
+  updateConflictState,
+  selectWorkingDirectoryFiles,
+} from './updates/changes-state'
+import { ManualConflictResolution } from '../../models/manual-conflict-resolution'
+import { BranchPruner } from './helpers/branch-pruner'
+import {
+  enableCopilotConflictResolution,
+  enableCopilotSdkCommitMessageGeneration,
+  enableCustomIntegration,
+} from '../feature-flag'
+import { Banner, BannerType } from '../../models/banner'
+import { ComputedAction } from '../../models/computed-action'
+import {
+  createDesktopStashEntry,
+  getLastDesktopStashEntryForBranch,
+  popStashEntry,
+  dropDesktopStashEntry,
+  moveStashEntry,
+} from '../git/stash'
+import {
+  UncommittedChangesStrategy,
+  defaultUncommittedChangesStrategy,
+} from '../../models/uncommitted-changes-strategy'
+import { IStashEntry, StashedChangesLoadStates } from '../../models/stash-entry'
+import { arrayEquals } from '../equality'
+import { MenuLabelsEvent } from '../../models/menu-labels'
+import { findRemoteBranchName } from './helpers/find-branch-name'
+import { updateRemoteUrl } from './updates/update-remote-url'
+import {
+  TutorialStep,
+  orderedTutorialSteps,
+  isValidTutorialStep,
+} from '../../models/tutorial-step'
+import { OnboardingTutorialAssessor } from './helpers/tutorial-assessor'
+import { getConflictedFiles, getUntrackedFiles } from '../status'
+import { isBranchPushable } from '../helpers/push-control'
+import {
+  findAssociatedPullRequest,
+  isPullRequestAssociatedWithBranch,
+} from '../helpers/pull-request-matching'
+import { parseRemote } from '../../lib/remote-parsing'
+import { createTutorialRepository } from './helpers/create-tutorial-repository'
+import { sendNonFatalException } from '../helpers/non-fatal-exception'
+import { getDefaultDir } from '../../ui/lib/default-dir'
+import { WorkflowPreferences } from '../../models/workflow-preferences'
+import { RepositoryIndicatorUpdater } from './helpers/repository-indicator-updater'
+import { isAttributableEmailFor } from '../email'
+import { TrashNameLabel } from '../../ui/lib/context-menu'
+import { GitError as DugiteError } from 'dugite'
+import {
+  ErrorWithMetadata,
+  CheckoutError,
+  DiscardChangesError,
+  StashChangesError,
+} from '../error-with-metadata'
+import {
+  ShowDiffMinimapDefault,
+  ShowSideBySideDiffDefault,
+  getShowDiffMinimap,
+  getShowSideBySideDiff,
+  setShowDiffMinimap,
+  setShowSideBySideDiff,
+} from '../../ui/lib/diff-mode'
+import {
+  abortCherryPick,
+  cherryPick,
+  CherryPickResult,
+  continueCherryPick,
+  getCherryPickSnapshot,
+  isCherryPickHeadFound,
+} from '../git/cherry-pick'
+import { DragElement } from '../../models/drag-drop'
+import { ILastThankYou } from '../../models/last-thank-you'
+import { squash } from '../git/squash'
 import { getTipSha } from '../tip'
+import {
+  MultiCommitOperationDetail,
+  MultiCommitOperationKind,
+  MultiCommitOperationStep,
+  MultiCommitOperationStepKind,
+} from '../../models/multi-commit-operation'
+import { reorder } from '../git/reorder'
+import { UseWindowsOpenSSHKey } from '../ssh/ssh'
+import { isConflictsFlow } from '../multi-commit-operation'
+import { clamp } from '../clamp'
+import { EndpointToken } from '../endpoint-token'
+import { IRefCheck } from '../ci-checks/ci-checks'
+import {
+  NotificationsStore,
+  getNotificationsEnabled,
+} from './notifications-store'
+import * as ipcRenderer from '../ipc-renderer'
+import { pathExists } from '../../ui/lib/path-exists'
+import { offsetFromNow } from '../offset-from'
+import { findContributionTargetDefaultBranch } from '../branch'
+import { ValidNotificationPullRequestReview } from '../valid-notification-pull-request-review'
+import { determineMergeability } from '../git/merge-tree'
+import { PopupManager } from '../popup-manager'
+import { resizableComponentClass } from '../../ui/resizable'
+import { compare } from '../compare'
+import { parseRepoRules, useRepoRulesLogic } from '../helpers/repo-rules'
+import { RepoRulesInfo } from '../../models/repo-rules'
 import {
   setUseExternalCredentialHelper,
   useExternalCredentialHelper,
   useExternalCredentialHelperDefault,
 } from '../trampoline/use-external-credential-helper'
-import { ValidNotificationPullRequestReview } from '../valid-notification-pull-request-review'
-import { hasShownWelcomeFlow, markWelcomeFlowComplete } from '../welcome'
-import { WindowState } from '../window-state'
-import { ApiRepositoriesStore } from './api-repositories-store'
-import { TypedBaseStore } from './base-store'
-import { GitStoreCache } from './git-store-cache'
-import { BackgroundFetcher } from './helpers/background-fetcher'
-import { BranchPruner } from './helpers/branch-pruner'
-import { createTutorialRepository } from './helpers/create-tutorial-repository'
-import { findRemoteBranchName } from './helpers/find-branch-name'
-import { RepositoryIndicatorUpdater } from './helpers/repository-indicator-updater'
+import { IOAuthAction } from '../parse-app-url'
 import {
-  createSidebarStateFromStatus,
-  findSidebarWorktreeStateRepository,
-  getCurrentWorktreeEntryForRepository,
-  shouldRefreshSidebarWorktrees,
-  withSidebarWorktrees,
-} from './helpers/sidebar-worktrees'
-import { OnboardingTutorialAssessor } from './helpers/tutorial-assessor'
-import {
-  getNotificationsEnabled,
-  NotificationsStore,
-} from './notifications-store'
-import { RepositoryStateCache } from './repository-state-cache'
-import {
-  selectWorkingDirectoryFiles,
-  updateChangedFiles,
-  updateConflictState,
-} from './updates/changes-state'
-import { updateRemoteUrl } from './updates/update-remote-url'
+  ICustomIntegration,
+  migratedCustomIntegration,
+} from '../custom-integration'
+import { updateStore } from '../../ui/lib/update-store'
+import { BypassReasonType } from '../../ui/secret-scanning/bypass-push-protection-dialog'
 import { getRepoHooks } from '../hooks/get-repo-hooks'
-import pLimit from 'p-limit'
+import {
+  ICopilotConflictResolutionResponse,
+  IConflictResolutionProgress,
+} from '../copilot-conflict-resolution'
+import {
+  buildConflictContext,
+  gatherCommitContext,
+} from '../copilot-conflict-context'
+import { resolveWithin } from '../path'
 
 const LastSelectedRepositoryIDKey = 'last-selected-repository-id'
 
@@ -539,7 +571,6 @@ export const showDiffCheckMarksKey = 'diff-check-marks-visible'
 export const showBranchNameInRepoListKey = 'show-branch-name-in-repo-list'
 const copyPathNormalizationKey = 'copy-path-normalization'
 const branchSortOrderKey = 'branch-sort-order'
-const commitDateDisplayKey = 'commit-date-display'
 
 const commitMessageGenerationDisclaimerLastSeenKey =
   'commit-message-generation-disclaimer-last-seen'
@@ -548,6 +579,8 @@ const commitMessageGenerationButtonClickedKey =
   'commit-message-generation-button-clicked'
 
 export const showChangesFilterKey = 'show-changes-filter'
+
+const selectedCopilotModelsKey = 'selected-copilot-models'
 export const showChangesFilterDefault = true
 const graphMaxLanesKey = 'graph-max-lanes'
 export const defaultGraphMaxLanes = 8
@@ -646,6 +679,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
   private commitSpellcheckEnabled: boolean = commitSpellcheckEnabledDefault
   private showCommitAuthorInfo: boolean = showCommitAuthorInfoDefault
   private showSideBySideDiff: boolean = ShowSideBySideDiffDefault
+  private showDiffMinimap: boolean = ShowDiffMinimapDefault
 
   private uncommittedChangesStrategy = defaultUncommittedChangesStrategy
 
@@ -675,7 +709,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
   private selectedTabSize = tabSizeDefault
   private selectedDiffFontSize = defaultDiffFontSize
   private selectedDiffFontFamily = defaultDiffFontFamily
-  private titleBarStyle: TitleBarStyle = 'native'
+  private titleBarStyle: TitleBarStyle = __WIN32__ ? 'custom' : 'native'
   private showRecentRepositories: boolean = true
   private showWorktrees: boolean = false
   private showWorktreesInSidebar: boolean = false
@@ -725,7 +759,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
   private branchSortOrder: BranchSortOrder = DEFAULT_BRANCH_SORT_ORDER
 
-  private commitDateDisplay: CommitDateDisplay = defaultCommitDateDisplay
+  private preferAbsoluteDates: boolean = false
 
   private graphMaxLanes: number = defaultGraphMaxLanes
 
@@ -737,6 +771,10 @@ export class AppStore extends TypedBaseStore<IAppState> {
   private commitMessageGenerationButtonClicked: boolean = false
 
   private showChangesFilter: boolean = false
+
+  private selectedCopilotModels: CopilotModelSelections = {}
+  private copilotModels: ReadonlyArray<ModelInfo> | null = null
+  private byokProviders: ReadonlyArray<IBYOKProvider> = []
 
   public constructor(
     private readonly gitHubUserStore: GitHubUserStore,
@@ -1111,6 +1149,13 @@ export class AppStore extends TypedBaseStore<IAppState> {
     // updateStore is a global, App.tsx handles most of it but we carry the
     // UpdateState in the AppState so we need to emit whenever it updates.
     updateStore.onDidChange(() => this.emitUpdate())
+
+    this.copilotStore.onDidUpdate(() => {
+      this.copilotModels = this.copilotStore.isAvailable
+        ? this.copilotStore.cachedModelList ?? this.copilotModels
+        : null
+      this.emitUpdate()
+    })
   }
 
   /** Load the emoji from disk. */
@@ -1263,6 +1308,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
       hideWhitespaceInHistoryDiff: this.hideWhitespaceInHistoryDiff,
       hideWhitespaceInPullRequestDiff: this.hideWhitespaceInPullRequestDiff,
       showSideBySideDiff: this.showSideBySideDiff,
+      showDiffMinimap: this.showDiffMinimap,
       selectedShell: this.selectedShell,
       repositoryFilterText: this.repositoryFilterText,
       resolvedExternalEditor: this.resolvedExternalEditor,
@@ -1304,14 +1350,18 @@ export class AppStore extends TypedBaseStore<IAppState> {
       showBranchNameInRepoList: this.showBranchNameInRepoList,
       copyPathNormalization: this.copyPathNormalization,
       branchSortOrder: this.branchSortOrder,
-      commitDateDisplay: this.commitDateDisplay,
       graphMaxLanes: this.graphMaxLanes,
+      preferAbsoluteDates: this.preferAbsoluteDates,
       updateState: updateStore.state,
       commitMessageGenerationDisclaimerLastSeen:
         this.commitMessageGenerationDisclaimerLastSeen,
       commitMessageGenerationButtonClicked:
         this.commitMessageGenerationButtonClicked,
       showChangesFilter: this.showChangesFilter,
+      selectedCopilotModels: this.selectedCopilotModels,
+      copilotModels: this.copilotModels,
+      copilotAvailable: this.copilotStore.isAvailable,
+      byokProviders: this.byokProviders,
     }
   }
 
@@ -2811,6 +2861,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
       showCommitAuthorInfoDefault
     )
     this.showSideBySideDiff = getShowSideBySideDiff()
+    this.showDiffMinimap = getShowDiffMinimap()
 
     this.selectedTheme = getPersistedThemeName()
     // Make sure the persisted theme is applied
@@ -2871,6 +2922,10 @@ export class AppStore extends TypedBaseStore<IAppState> {
       showDiffCheckMarksDefault
     )
 
+    this.preferAbsoluteDates = getPreferAbsoluteDates()
+
+    this.preferAbsoluteDates = getPreferAbsoluteDates()
+
     this.showBranchNameInRepoList =
       getEnum(showBranchNameInRepoListKey, ShowBranchNameInRepoListSetting) ??
       defaultShowBranchNameInRepoListSetting
@@ -2882,11 +2937,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
     this.branchSortOrder =
       getEnum(branchSortOrderKey, BranchSortOrder) ?? DEFAULT_BRANCH_SORT_ORDER
 
-    this.commitDateDisplay =
-      getEnum(commitDateDisplayKey, CommitDateDisplay) ??
-      defaultCommitDateDisplay
-
     this.graphMaxLanes = getNumber(graphMaxLanesKey) ?? defaultGraphMaxLanes
+
 
     this.commitMessageGenerationDisclaimerLastSeen =
       getNumber(commitMessageGenerationDisclaimerLastSeenKey) ?? null
@@ -2902,6 +2954,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
     )
 
     this.restoreOpenTabs()
+    this.selectedCopilotModels = this.loadCopilotModelSelections()
+    this.byokProviders = loadBYOKProviders()
 
     this.emitUpdateNow()
 
@@ -3257,6 +3311,13 @@ export class AppStore extends TypedBaseStore<IAppState> {
     this.updateChangesWorkingDirectoryDiff(repository)
 
     return status
+  }
+
+  public async _loadStatusLight(
+    repository: Repository
+  ): Promise<IStatusResult | null> {
+    const gitStore = this.gitStoreCache.get(repository)
+    return await gitStore.loadStatusLight()
   }
 
   /**
@@ -5417,20 +5478,16 @@ export class AppStore extends TypedBaseStore<IAppState> {
       // we need to switch to a different branch (default or recent).
       const branchToCheckout =
         toCheckout ?? this.getBranchToCheckoutAfterDelete(branch, repository)
-
-      if (branchToCheckout !== null) {
-        const { changesState } = this.repositoryStateCache.get(repository)
-        const hasChanges = changesState.workingDirectory.files.length > 0
-
-        if (hasChanges) {
-          this._showPopup({
-            type: PopupType.CantDeleteCurrentBranchUncommittedChanges,
-            repository,
-            branchToDelete: branch,
-          })
-          return
-        }
-
+      if (branchToCheckout === null) {
+        // No checkout needed
+      } else if (branchToCheckout.ref === branch.ref) {
+        this._showPopup({
+          type: PopupType.CantDeleteMainBranch,
+          repository,
+          branchToDelete: branch,
+        })
+        return
+      } else {
         const worktrees = await listWorktrees(repository)
         const branchRef = `refs/heads/${branchToCheckout.name}`
         const inUseInAnotherWorktree = worktrees.some(
@@ -5446,9 +5503,21 @@ export class AppStore extends TypedBaseStore<IAppState> {
           return
         }
 
-        await gitStore.performFailableOperation(() =>
-          checkoutBranch(repository, branchToCheckout, gitStore.currentRemote)
-        )
+        try {
+          await checkoutBranch(
+            repository,
+            branchToCheckout,
+            gitStore.currentRemote
+          )
+        } catch (e) {
+          console.warn(e)
+          this._showPopup({
+            type: PopupType.CantDeleteCurrentBranchUncommittedChanges,
+            repository,
+            branchToDelete: branch,
+          })
+          return
+        }
       }
 
       await gitStore.performFailableOperation(() => {
@@ -5861,8 +5930,9 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
   public async _pullAllRepositories(): Promise<void> {
     const repositories = await this.repositoriesStore.getAll()
+    const nonMissingRepos = repositories.filter(r => !r.missing)
     await Promise.all(
-      repositories.map(repository =>
+      nonMissingRepos.map(repository =>
         this.withRepoInfoInError('Error pulling', repository, () =>
           this._pull(repository)
         )
@@ -5871,7 +5941,10 @@ export class AppStore extends TypedBaseStore<IAppState> {
   }
 
   /** This shouldn't be called directly. See `Dispatcher`. */
-  private async performPull(repository: Repository): Promise<void> {
+  private async performPull(
+    repository: Repository,
+    allowRetry = true
+  ): Promise<void> {
     return this.withPushPullFetch(repository, async () => {
       const gitStore = this.gitStoreCache.get(repository)
 
@@ -5894,6 +5967,14 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
       if (tip.kind === TipState.Detached) {
         throw new Error('The current repository is in a detached HEAD state.')
+      }
+
+      if (tip.kind === TipState.Unknown && allowRetry) {
+        console.warn(
+          `Repo ${repository.name} was in an unknown state (not loaded) when trying to pull. Refreshing repository and trying again.`
+        )
+        await this._refreshRepository(repository)
+        return this.performPull(repository, false)
       }
 
       if (tip.kind === TipState.Valid) {
@@ -6667,7 +6748,17 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
       try {
         const response = enableCopilotSdkCommitMessageGeneration(account)
-          ? await this.copilotStore.generateCommitMessage(diff, repository.path)
+          ? await this.copilotStore.generateCommitMessage(
+              diff,
+              repository.path,
+              await this.resolveCopilotModelRequest(
+                this.selectedCopilotModels['commit-message-generation'] ?? null
+              ),
+              this.repositoryStateCache
+                .get(repository)
+                ?.changesState.currentRepoRulesInfo?.commitMessagePatterns.getRules() ??
+                []
+            )
           : await API.fromAccount(account).getDiffChangesCommitMessage(diff)
 
         this._setCommitMessage(repository, {
@@ -6689,6 +6780,278 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
       return true
     })
+  }
+
+  /**
+   * Extract display labels and git refs for both sides of a conflict.
+   */
+  private async getConflictLabelsAndRefs(
+    repository: Repository,
+    conflictState: ConflictState,
+    multiCommitOperationState: IMultiCommitOperationState | null
+  ): Promise<{
+    readonly ourLabel: string
+    readonly theirLabel: string
+    readonly ourRef: string | undefined
+    readonly theirRef: string | undefined
+  }> {
+    if (isMergeConflictState(conflictState)) {
+      const theirBranch = await this.getMergeConflictsTheirBranch(
+        repository,
+        false,
+        multiCommitOperationState
+      )
+      return {
+        ourLabel: conflictState.currentBranch,
+        ourRef: conflictState.currentBranch,
+        theirLabel: theirBranch ?? 'incoming branch',
+        theirRef: theirBranch,
+      }
+    }
+
+    if (isRebaseConflictState(conflictState)) {
+      return {
+        ourLabel: conflictState.baseBranch ?? 'current branch',
+        ourRef: conflictState.baseBranch,
+        theirLabel: conflictState.targetBranch,
+        theirRef: conflictState.targetBranch,
+      }
+    }
+
+    if (isCherryPickConflictState(conflictState)) {
+      const sourceBranch =
+        multiCommitOperationState !== null &&
+        multiCommitOperationState.operationDetail.kind ===
+          MultiCommitOperationKind.CherryPick &&
+        multiCommitOperationState.operationDetail.sourceBranch !== null
+          ? multiCommitOperationState.operationDetail.sourceBranch.name
+          : undefined
+
+      return {
+        ourLabel: conflictState.targetBranchName,
+        ourRef: conflictState.targetBranchName,
+        theirLabel: sourceBranch ?? 'cherry-picked commit',
+        theirRef: sourceBranch,
+      }
+    }
+
+    return assertNever(conflictState, 'Unsupported conflict kind')
+  }
+
+  /** This shouldn't be called directly. See 'Dispatcher'. */
+  public async _resolveConflictsWithCopilot(
+    repository: Repository,
+    onProgress?: (progress: IConflictResolutionProgress) => void
+  ): Promise<ICopilotConflictResolutionResponse | null> {
+    if (!enableCopilotConflictResolution()) {
+      return null
+    }
+
+    try {
+      const state = this.repositoryStateCache.get(repository)
+      const { conflictState } = state.changesState
+
+      if (conflictState === null) {
+        log.warn(
+          'AppStore: resolveConflictsWithCopilot called with no active conflict state'
+        )
+        return null
+      }
+
+      const labels = await this.getConflictLabelsAndRefs(
+        repository,
+        conflictState,
+        state.multiCommitOperationState
+      )
+
+      const conflictedFiles = getConflictedFiles(
+        state.changesState.workingDirectory,
+        conflictState.manualResolutions
+      )
+
+      if (conflictedFiles.length === 0) {
+        log.warn(
+          'AppStore: resolveConflictsWithCopilot called with no conflicted files'
+        )
+        return null
+      }
+
+      const context = await buildConflictContext(
+        labels.ourLabel,
+        labels.theirLabel,
+        repository.path,
+        conflictedFiles
+      )
+
+      // Best-effort enrichment — never block resolution on these
+      const commitContext =
+        labels.ourRef && labels.theirRef
+          ? await gatherCommitContext(
+              repository,
+              labels.ourRef,
+              labels.theirRef
+            ).catch(() => null)
+          : null
+
+      const currentPullRequest = state.branchesState.currentPullRequest ?? null
+
+      const result = await this.copilotStore.resolveConflicts(
+        context,
+        commitContext,
+        currentPullRequest,
+        repository.path,
+        onProgress
+      )
+
+      return result
+    } catch (e) {
+      log.warn('AppStore: Copilot conflict resolution failed', e)
+      return null
+    }
+  }
+
+  /**
+   * Orchestrate Copilot conflict resolution: call the API, emit progress
+   * updates, and transition to the result dialog on success. File writes are
+   * deferred until the user confirms (see _applyCopilotConflictResolutions).
+   *
+   * This shouldn't be called directly. See `Dispatcher`.
+   */
+  public async _startCopilotConflictResolution(
+    repository: Repository
+  ): Promise<void> {
+    const state = this.repositoryStateCache.get(repository)
+    const { multiCommitOperationState } = state
+    if (multiCommitOperationState === null) {
+      return
+    }
+
+    const { step } = multiCommitOperationState
+    if (
+      step.kind !== MultiCommitOperationStepKind.ShowCopilotConflictsLoading
+    ) {
+      return
+    }
+
+    const { conflictState } = step
+
+    try {
+      const result = await this._resolveConflictsWithCopilot(
+        repository,
+        progress => {
+          // Bail if user cancelled while the request was in-flight
+          const current = this.repositoryStateCache.get(repository)
+          const mcoState = current.multiCommitOperationState
+          if (
+            mcoState === null ||
+            mcoState.step.kind !==
+              MultiCommitOperationStepKind.ShowCopilotConflictsLoading
+          ) {
+            return
+          }
+          this.repositoryStateCache.updateMultiCommitOperationState(
+            repository,
+            () => ({ copilotResolutionProgress: progress })
+          )
+          this.emitUpdate()
+        }
+      )
+
+      // Re-check state: user may have cancelled during the await
+      const currentState = this.repositoryStateCache.get(repository)
+      const currentMco = currentState.multiCommitOperationState
+      if (
+        currentMco === null ||
+        currentMco.step.kind !==
+          MultiCommitOperationStepKind.ShowCopilotConflictsLoading
+      ) {
+        return
+      }
+
+      if (result === null) {
+        throw new Error('Copilot conflict resolution returned no results')
+      }
+
+      // Store resolutions and transition to the result dialog.
+      // Files are NOT written to disk yet — that happens when the user
+      // clicks "Continue Merge" (see _applyCopilotConflictResolutions).
+      this.repositoryStateCache.updateMultiCommitOperationState(
+        repository,
+        () => ({
+          step: {
+            kind: MultiCommitOperationStepKind.ShowCopilotConflicts,
+            conflictState,
+          },
+          copilotResolutions: result.resolutions,
+          copilotResolutionProgress: null,
+        })
+      )
+
+      this.emitUpdate()
+    } catch (e) {
+      log.warn('AppStore: Copilot conflict resolution flow failed', e)
+
+      // Transition back to manual conflict resolution
+      this.repositoryStateCache.updateMultiCommitOperationState(
+        repository,
+        () => ({
+          step: {
+            kind: MultiCommitOperationStepKind.ShowConflicts,
+            conflictState,
+          },
+          useCopilotConflictResolution: false,
+          copilotResolutions: null,
+          copilotResolutionProgress: null,
+        })
+      )
+
+      this.emitUpdate()
+    }
+  }
+
+  /**
+   * Write Copilot-resolved file contents to disk and stage them.
+   * Called when the user clicks "Continue Merge" from the Copilot conflicts
+   * result dialog.
+   *
+   * This shouldn't be called directly. See `Dispatcher`.
+   */
+  public async _applyCopilotConflictResolutions(
+    repository: Repository
+  ): Promise<void> {
+    const state = this.repositoryStateCache.get(repository)
+    const { multiCommitOperationState } = state
+    if (multiCommitOperationState === null) {
+      return
+    }
+
+    const { copilotResolutions } = multiCommitOperationState
+    if (copilotResolutions === null || copilotResolutions.length === 0) {
+      return
+    }
+
+    const pathsToStage: string[] = []
+
+    for (const resolution of copilotResolutions) {
+      const absolutePath = await resolveWithin(repository.path, resolution.path)
+      if (absolutePath === null) {
+        log.warn(
+          `Copilot resolution skipped: path outside repository: ${resolution.path}`
+        )
+        continue
+      }
+
+      await writeFile(absolutePath, resolution.resolvedContent, 'utf8')
+      pathsToStage.push(resolution.path)
+    }
+
+    if (pathsToStage.length > 0) {
+      await git(
+        ['add', '--', ...pathsToStage],
+        repository.path,
+        'copilotConflictResolution'
+      )
+    }
   }
 
   /**
@@ -7338,6 +7701,14 @@ export class AppStore extends TypedBaseStore<IAppState> {
       setShowSideBySideDiff(showSideBySideDiff)
       this.showSideBySideDiff = showSideBySideDiff
       this.statsStore.increment('diffModeChangeCount')
+      this.emitUpdate()
+    }
+  }
+
+  public _setShowDiffMinimap(showDiffMinimap: boolean) {
+    if (showDiffMinimap !== this.showDiffMinimap) {
+      setShowDiffMinimap(showDiffMinimap)
+      this.showDiffMinimap = showDiffMinimap
       this.emitUpdate()
     }
   }
@@ -9269,6 +9640,23 @@ export class AppStore extends TypedBaseStore<IAppState> {
     this.emitUpdate()
   }
 
+  /** This shouldn't be called directly. See `Dispatcher`. */
+  public _setMultiCommitOperationStepWithCopilotResolution(
+    repository: Repository,
+    step: MultiCommitOperationStep,
+    useCopilotConflictResolution: boolean
+  ): void {
+    this.repositoryStateCache.updateMultiCommitOperationState(
+      repository,
+      () => ({
+        step,
+        useCopilotConflictResolution,
+      })
+    )
+
+    this.emitUpdate()
+  }
+
   public _setMultiCommitOperationTargetBranch(
     repository: Repository,
     targetBranch: Branch
@@ -9309,6 +9697,9 @@ export class AppStore extends TypedBaseStore<IAppState> {
         value: 0,
       },
       userHasResolvedConflicts: false,
+      useCopilotConflictResolution: false,
+      copilotResolutions: null,
+      copilotResolutionProgress: null,
       originalBranchTip,
       targetBranch,
     })
@@ -9817,10 +10208,291 @@ export class AppStore extends TypedBaseStore<IAppState> {
     }
   }
 
-  public _updateCommitDateDisplay(commitDateDisplay: CommitDateDisplay) {
-    if (commitDateDisplay !== this.commitDateDisplay) {
-      this.commitDateDisplay = commitDateDisplay
-      localStorage.setItem(commitDateDisplayKey, commitDateDisplay)
+  /** This shouldn't be called directly. See 'Dispatcher'. */
+  public _setSelectedCopilotModel(
+    feature: CopilotFeature,
+    model: string | null
+  ) {
+    const current = this.selectedCopilotModels[feature] ?? null
+    if (model !== current) {
+      if (model === null) {
+        const updated = { ...this.selectedCopilotModels }
+        delete updated[feature]
+        this.selectedCopilotModels = updated
+      } else {
+        this.selectedCopilotModels = {
+          ...this.selectedCopilotModels,
+          [feature]: model,
+        }
+      }
+      this.saveCopilotModelSelections()
+    }
+  }
+
+  private loadCopilotModelSelections(): CopilotModelSelections {
+    const raw = localStorage.getItem(selectedCopilotModelsKey)
+    if (raw !== null) {
+      try {
+        const parsed: unknown = JSON.parse(raw)
+        if (typeof parsed === 'object' && parsed !== null) {
+          return parsed as CopilotModelSelections
+        }
+      } catch {
+        // fall through to migration
+      }
+    }
+
+    // Migrate from the old single-model key
+    const legacy = localStorage.getItem('selected-copilot-model')
+    if (legacy !== null) {
+      localStorage.removeItem('selected-copilot-model')
+      const selections: CopilotModelSelections = {
+        'commit-message-generation': legacy,
+      }
+      localStorage.setItem(selectedCopilotModelsKey, JSON.stringify(selections))
+      return selections
+    }
+
+    return {}
+  }
+
+  private saveCopilotModelSelections() {
+    const keys = Object.keys(this.selectedCopilotModels)
+    if (keys.length === 0) {
+      localStorage.removeItem(selectedCopilotModelsKey)
+    } else {
+      localStorage.setItem(
+        selectedCopilotModelsKey,
+        JSON.stringify(this.selectedCopilotModels)
+      )
+    }
+  }
+
+  /** This shouldn't be called directly. See 'Dispatcher'. */
+  public _setSelectedCopilotModels(models: CopilotModelSelections) {
+    this.selectedCopilotModels = { ...models }
+    // The Preferences dialog keeps its own copy of the selections in
+    // component state. If the user deletes/edits a BYOK provider through
+    // the popup stack while the dialog is open, that local copy can still
+    // reference a model that no longer exists; scrub on save so we never
+    // resurrect a stale selection.
+    this.scrubMissingCopilotModelSelections()
+    this.saveCopilotModelSelections()
+  }
+
+  /**
+   * Resolves a stored Copilot model selection (the composite key persisted in
+   * `selectedCopilotModels`) into a {@link CopilotModelRequest} suitable for
+   * {@link CopilotStore.generateCommitMessage}. BYOK provider secrets are
+   * read from the OS keychain at call time.
+   */
+  private async resolveCopilotModelRequest(
+    selection: string | null
+  ): Promise<CopilotModelRequest> {
+    if (selection === null) {
+      return { kind: 'copilot', modelId: null }
+    }
+
+    const key = parseModelKey(selection)
+    if (key.kind === 'copilot') {
+      return {
+        kind: 'copilot',
+        modelId: key.modelId === '' ? null : key.modelId,
+      }
+    }
+
+    const provider = this.byokProviders.find(p => p.id === key.providerId)
+    const model = provider?.models.find(m => m.id === key.modelId)
+    if (provider === undefined || model === undefined) {
+      // Selection points at a deleted provider/model; fall back to default.
+      return { kind: 'copilot', modelId: null }
+    }
+
+    let secret: string | null = null
+    if (provider.authKind !== 'none') {
+      try {
+        secret = await getBYOKSecret(provider.id)
+      } catch (e) {
+        const message = e instanceof Error ? e.message : String(e)
+        throw new Error(
+          `Could not read the credential for the custom Copilot provider ` +
+            `'${provider.name}' from the OS keychain: ${message}`
+        )
+      }
+    }
+
+    if (provider.authKind !== 'none' && (secret === null || secret === '')) {
+      throw new Error(
+        `No ${
+          provider.authKind === 'bearer' ? 'bearer token' : 'API key'
+        } is stored for the custom Copilot provider '${provider.name}'. ` +
+          `Open Settings → Copilot → Providers and re-enter the credential.`
+      )
+    }
+
+    const providerConfig: CopilotProviderConfig = {
+      type: provider.type,
+      baseUrl: provider.baseUrl,
+      ...(provider.wireApi ? { wireApi: provider.wireApi } : {}),
+      ...(provider.type === 'azure' && provider.azureApiVersion
+        ? { azure: { apiVersion: provider.azureApiVersion } }
+        : {}),
+      ...(secret !== null && provider.authKind === 'apiKey'
+        ? { apiKey: secret }
+        : {}),
+      ...(secret !== null && provider.authKind === 'bearer'
+        ? { bearerToken: secret }
+        : {}),
+    }
+
+    return {
+      kind: 'byok',
+      modelId: model.id,
+      provider: providerConfig,
+      ...(model.reasoningEffort !== undefined
+        ? { reasoningEffort: model.reasoningEffort }
+        : {}),
+      ...(provider.requestTimeoutSeconds !== undefined &&
+      provider.requestTimeoutSeconds > 0
+        ? { timeoutMs: provider.requestTimeoutSeconds * 1000 }
+        : {}),
+    }
+  }
+
+  /** This shouldn't be called directly. See 'Dispatcher'. */
+  public async _addCopilotBYOKProvider(
+    provider: IBYOKProvider,
+    secret: string | null
+  ): Promise<void> {
+    // Write the secret first so a keychain failure doesn't leave a provider
+    // in localStorage without its credentials.
+    if (secret !== null && secret.length > 0) {
+      await setBYOKSecret(provider.id, secret)
+    }
+
+    this.byokProviders = [...this.byokProviders, provider]
+    saveBYOKProviders(this.byokProviders)
+
+    this.emitUpdate()
+  }
+
+  /**
+   * Updates a BYOK provider in place. Pass `secret = undefined` to leave the
+   * stored secret untouched, `null` to clear it, or a string to overwrite it.
+   *
+   * This shouldn't be called directly. See 'Dispatcher'.
+   */
+  public async _updateCopilotBYOKProvider(
+    provider: IBYOKProvider,
+    secret: string | null | undefined
+  ): Promise<void> {
+    const idx = this.byokProviders.findIndex(p => p.id === provider.id)
+    if (idx === -1) {
+      // Treat as add to keep the call idempotent from the UI's perspective.
+      return this._addCopilotBYOKProvider(provider, secret ?? null)
+    }
+
+    // Apply the keychain change first; if it throws, the persisted provider
+    // and its in-memory copy stay consistent with the existing secret.
+    if (secret === null) {
+      await deleteBYOKSecret(provider.id)
+    } else if (secret !== undefined && secret.length > 0) {
+      await setBYOKSecret(provider.id, secret)
+    }
+
+    const updated = [...this.byokProviders]
+    updated[idx] = provider
+    this.byokProviders = updated
+    saveBYOKProviders(this.byokProviders)
+
+    // If the user removed the model that was selected for any feature, fall
+    // back to the default for that feature.
+    this.scrubMissingCopilotModelSelections()
+
+    this.emitUpdate()
+  }
+
+  /** This shouldn't be called directly. See 'Dispatcher'. */
+  public async _deleteCopilotBYOKProvider(id: string): Promise<void> {
+    if (!this.byokProviders.some(p => p.id === id)) {
+      return
+    }
+
+    // Purge the secret first; on failure we keep the provider visible so the
+    // user can retry rather than ending up with an orphaned keychain entry
+    // and no UI to manage it.
+    await deleteBYOKSecret(id)
+
+    this.byokProviders = this.byokProviders.filter(p => p.id !== id)
+    saveBYOKProviders(this.byokProviders)
+
+    this.scrubMissingCopilotModelSelections()
+
+    this.emitUpdate()
+  }
+
+  /**
+   * Drops any per-feature model selection that points at a BYOK
+   * provider/model that no longer exists, or at a Copilot model that is
+   * no longer offered by the loaded model list. Copilot selections are
+   * only scrubbed once we have a definitive model list (i.e. the list has
+   * been fetched at least once); while still loading we leave them alone
+   * so a transient empty list doesn't downgrade valid selections.
+   */
+  private scrubMissingCopilotModelSelections(): void {
+    const updated: CopilotModelSelections = {}
+    let changed = false
+    const copilotModels = this.copilotModels
+    for (const [feature, raw] of Object.entries(this.selectedCopilotModels)) {
+      if (raw === undefined) {
+        continue
+      }
+      const key = parseModelKey(raw)
+      if (key.kind === 'byok') {
+        const provider = this.byokProviders.find(p => p.id === key.providerId)
+        if (
+          provider === undefined ||
+          !provider.models.some(m => m.id === key.modelId)
+        ) {
+          changed = true
+          continue
+        }
+      } else if (
+        key.kind === 'copilot' &&
+        key.modelId !== '' &&
+        copilotModels !== null &&
+        !copilotModels.some(m => m.id === key.modelId)
+      ) {
+        changed = true
+        continue
+      }
+      updated[feature as CopilotFeature] = raw
+    }
+
+    if (changed) {
+      this.selectedCopilotModels = updated
+      this.saveCopilotModelSelections()
+    }
+  }
+
+  /** This shouldn't be called directly. See 'Dispatcher'. */
+  public async _fetchCopilotModels(): Promise<void> {
+    const models = await this.copilotStore.listModels()
+    // Only overwrite the cached model list when we actually got a list back.
+    // listModels() returns null when the result is unknown (no signed-in
+    // account or an SDK failure with no prior cache); treating that as an
+    // empty list would scrub the user's Copilot model selections.
+    if (models !== null) {
+      this.copilotModels = [...models]
+      this.scrubMissingCopilotModelSelections()
+    }
+    this.emitUpdate()
+  }
+
+  public _setPreferAbsoluteDates(value: boolean) {
+    if (value !== this.preferAbsoluteDates) {
+      this.preferAbsoluteDates = value
+      setPreferAbsoluteDates(value)
       this.emitUpdate()
     }
   }

@@ -79,10 +79,13 @@ export class AppWindow {
     } else if (__WIN32__) {
       windowOptions.frame = false
     } else if (__LINUX__) {
-      if (readMainProcessConfig().titleBarStyle === 'custom') {
+      const config = readMainProcessConfig()
+      if (config.titleBarStyle === 'custom') {
         windowOptions.frame = false
       }
       windowOptions.icon = join(__dirname, 'static', 'logos', '512x512.png')
+      windowOptions.autoHideMenuBar =
+        config.titleBarStyle === 'native-without-menu-bar'
 
       // relax restriction here for users trying to run app at a small
       // resolution and any other side-effects of dropping this restriction are
@@ -226,7 +229,16 @@ export class AppWindow {
     )
 
     registerWindowStateChangedEvents(this.window)
-    this.window.loadURL(encodePathAsUrl(__dirname, 'index.html'))
+
+    // We want to have the locale country code available in the renderer on load
+    // so that it can be used to try to deduce some sane date/time/number
+    // formatting defaults. This is a bit of a hack but it avoids the need to
+    // have an IPC round trip to get that information from the main process.
+    const localeCountryCode = app.getLocaleCountryCode() ?? ''
+    this.window.loadURL(
+      encodePathAsUrl(__dirname, 'index.html') +
+        `#lc=${encodeURIComponent(localeCountryCode)}`
+    )
 
     const onNativeThemeUpdated = () => {
       ipcWebContents.send(this.window.webContents, 'native-theme-updated')

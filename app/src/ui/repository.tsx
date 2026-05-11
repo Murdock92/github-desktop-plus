@@ -39,7 +39,6 @@ import { Emoji } from '../lib/emoji'
 import { PopupType } from '../models/popup'
 import { Branch } from '../models/branch'
 import { BranchSortOrder } from '../models/branch-sort-order'
-import { CommitDateDisplay } from '../models/commit-date-display'
 
 interface IRepositoryViewProps {
   readonly repository: Repository
@@ -56,7 +55,9 @@ interface IRepositoryViewProps {
   readonly hideWhitespaceInChangesDiff: boolean
   readonly hideWhitespaceInHistoryDiff: boolean
   readonly showSideBySideDiff: boolean
+  readonly showDiffMinimap: boolean
   readonly showDiffCheckMarks: boolean
+  readonly preferAbsoluteDates: boolean
   readonly askForConfirmationOnDiscardChanges: boolean
   readonly askForConfirmationOnCommitFilteredChanges: boolean
   readonly askForConfirmationOnDiscardStash: boolean
@@ -117,8 +118,6 @@ interface IRepositoryViewProps {
   ) => void
 
   readonly branchSortOrder: BranchSortOrder
-
-  readonly commitDateDisplay: CommitDateDisplay
 
   /** Maximum graph lane columns to render in the commit graph. */
   readonly graphMaxLanes: number
@@ -436,7 +435,6 @@ export class RepositoryView extends React.Component<
         isLocalRepository={remote === null}
         compareState={compareState}
         branchSortOrder={this.props.branchSortOrder}
-        commitDateDisplay={this.props.commitDateDisplay}
         selectedCommitShas={shas}
         shasToHighlight={compareState.shasToHighlight}
         currentBranch={currentBranch}
@@ -454,6 +452,7 @@ export class RepositoryView extends React.Component<
         tagsToPush={tagsToPush}
         aheadBehindStore={aheadBehindStore}
         isMultiCommitOperationInProgress={mcos !== null}
+        preferAbsoluteDates={this.props.preferAbsoluteDates}
         askForConfirmationOnCheckoutCommit={
           this.props.askForConfirmationOnCheckoutCommit
         }
@@ -496,7 +495,6 @@ export class RepositoryView extends React.Component<
         isLocalRepository={remote === null}
         compareState={compareState}
         branchSortOrder={this.props.branchSortOrder}
-        commitDateDisplay={this.props.commitDateDisplay}
         selectedCommitShas={shas}
         shasToHighlight={compareState.shasToHighlight}
         currentBranch={currentBranch}
@@ -520,6 +518,7 @@ export class RepositoryView extends React.Component<
         accounts={this.props.accounts}
         allBranches={branchesState.allBranches}
         graphMaxLanes={this.props.graphMaxLanes}
+        preferAbsoluteDates={this.props.preferAbsoluteDates}
       />
     )
   }
@@ -603,6 +602,7 @@ export class RepositoryView extends React.Component<
             this.props.askForConfirmationOnDiscardStash
           }
           showSideBySideDiff={this.props.showSideBySideDiff}
+          showDiffMinimap={this.props.showDiffMinimap}
           onOpenBinaryFile={this.onOpenBinaryFile}
           onOpenSubmodule={this.onOpenSubmodule}
           onChangeImageDiffType={this.onChangeImageDiffType}
@@ -658,6 +658,7 @@ export class RepositoryView extends React.Component<
         onViewCommitOnGitHub={this.props.onViewCommitOnGitHub}
         hideWhitespaceInDiff={this.props.hideWhitespaceInHistoryDiff}
         showSideBySideDiff={this.props.showSideBySideDiff}
+        showDiffMinimap={this.props.showDiffMinimap}
         onOpenBinaryFile={this.onOpenBinaryFile}
         onOpenSubmodule={this.onOpenSubmodule}
         onChangeImageDiffType={this.onChangeImageDiffType}
@@ -752,6 +753,7 @@ export class RepositoryView extends React.Component<
           imageDiffType={this.props.imageDiffType}
           hideWhitespaceInDiff={this.props.hideWhitespaceInChangesDiff}
           showSideBySideDiff={this.props.showSideBySideDiff}
+          showDiffMinimap={this.props.showDiffMinimap}
           showDiffCheckMarks={this.props.showDiffCheckMarks}
           onOpenBinaryFile={this.onOpenBinaryFile}
           onOpenSubmodule={this.onOpenSubmodule}

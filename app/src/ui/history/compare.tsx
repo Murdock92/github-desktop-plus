@@ -30,12 +30,12 @@ import { PopupType } from '../../models/popup'
 import { getUniqueCoauthorsAsAuthors } from '../../lib/unique-coauthors-as-authors'
 import { getSquashedCommitDescription } from '../../lib/squash/squashed-commit-description'
 import { BranchSortOrder } from '../../models/branch-sort-order'
-import { CommitDateDisplay } from '../../models/commit-date-display'
 import { doMergeCommitsExistAfterCommit } from '../../lib/git'
 import { KeyboardInsertionData } from '../lib/list'
 import { Account } from '../../models/account'
 import { Emoji } from '../../lib/emoji'
 import { syncClockwise } from '../octicons'
+import { formatNumber } from '../../lib/format-number'
 
 interface ICompareSidebarProps {
   readonly isCompareView: boolean
@@ -50,7 +50,6 @@ interface ICompareSidebarProps {
   readonly currentBranch: Branch | null
   readonly selectedCommitShas: ReadonlyArray<string>
   readonly branchSortOrder: BranchSortOrder
-  readonly commitDateDisplay: CommitDateDisplay
   readonly onRevertCommit: (commit: Commit) => void
   readonly onAmendCommit: (commit: Commit, isLocalCommit: boolean) => void
   readonly onViewCommitOnGitHub: (sha: string) => void
@@ -71,8 +70,8 @@ interface ICompareSidebarProps {
   readonly allBranches: ReadonlyArray<Branch>
   /** Maximum graph lane columns to render. */
   readonly graphMaxLanes: number
+  readonly preferAbsoluteDates: boolean
 }
-
 interface ICompareSidebarState {
   /**
    * This branch should only be used when tracking interactions that the user is performing.
@@ -138,7 +137,14 @@ export class CompareSidebar extends React.Component<
   }
 
   public componentDidUpdate(prevProps: ICompareSidebarProps) {
-    const { showBranchList } = this.props.compareState
+    const { showBranchList, commitSearchQuery } = this.props.compareState
+
+    if (
+      prevProps.compareState.commitSearchQuery !== '' &&
+      commitSearchQuery === ''
+    ) {
+      this.commitListRef.current?.scrollToSelectedCommit()
+    }
 
     if (showBranchList === prevProps.compareState.showBranchList) {
       return
@@ -343,9 +349,7 @@ export class CompareSidebar extends React.Component<
         keyboardReorderData={this.state.keyboardReorderData}
         accounts={this.props.accounts}
         dragSourceBranch={dragSourceBranch}
-        showAbsoluteDates={
-          this.props.commitDateDisplay === CommitDateDisplay.Absolute
-        }
+        preferAbsoluteDates={this.props.preferAbsoluteDates}
         allBranches={this.props.allBranches}
         mergeBaseSha={this.props.compareState.mergeBaseSha}
         graphMaxLanes={this.props.graphMaxLanes}
@@ -485,8 +489,10 @@ export class CompareSidebar extends React.Component<
     return (
       <div className="compare-content">
         <TabBar selectedIndex={selectedTab} onTabClicked={this.onTabClicked}>
-          <span>{`Behind (${formState.aheadBehind.behind})`}</span>
-          <span>{`Ahead (${formState.aheadBehind.ahead})`}</span>
+          <span>{`Behind (${formatNumber(
+            formState.aheadBehind.behind
+          )})`}</span>
+          <span>{`Ahead (${formatNumber(formState.aheadBehind.ahead)})`}</span>
         </TabBar>
         {this.renderActiveTab(formState)}
       </div>

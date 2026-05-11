@@ -53,7 +53,7 @@ interface ICommitProps {
   readonly unpushedIndicatorTitle?: string
   readonly accounts: ReadonlyArray<Account>
   readonly dragSourceBranch?: Branch
-  readonly showAbsoluteDates: boolean
+  readonly preferAbsoluteDates: boolean
   /** Graph lane layout data for this row, if the graph column is enabled. */
   readonly graphRow?: ICommitGraphRow
   /** Total number of graph columns (determines SVG width). */
@@ -203,7 +203,7 @@ export class CommitListItem extends React.PureComponent<
               />
               <div className="byline">
                 <CommitAttribution avatarUsers={this.state.avatarUsers} />
-                {renderRelativeTime(date, this.props.showAbsoluteDates)}
+                {renderRelativeTime(date, this.props.preferAbsoluteDates)}
               </div>
             </div>
           </div>
@@ -272,21 +272,15 @@ export class CommitListItem extends React.PureComponent<
   }
 }
 
-function renderRelativeTime(date: Date, showAbsolute: boolean) {
-  if (showAbsolute) {
-    return (
-      <>
-        {` • `}
-        <span>
-          {formatDate(date, { dateStyle: 'medium', timeStyle: 'short' })}
-        </span>
-      </>
-    )
-  }
+function renderRelativeTime(date: Date, preferAbsoluteDates: boolean) {
   return (
     <>
       {` • `}
-      <RelativeTime date={date} tooltip={!enableAccessibleListToolTips()} />
+      {preferAbsoluteDates ? (
+        formatDate(date)
+      ) : (
+        <RelativeTime date={date} tooltip={!enableAccessibleListToolTips()} />
+      )}
     </>
   )
 }

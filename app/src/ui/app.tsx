@@ -80,6 +80,10 @@ import { AppMenuBar } from './app-menu'
 import { UpdateAvailable, renderBanner } from './banners'
 import { Preferences } from './preferences'
 import { ConfirmRestart } from './preferences/confirm-restart'
+import { EditCopilotBYOKProviderDialog } from './copilot/edit-byok-provider-dialog'
+import { EditCopilotBYOKModelDialog } from './copilot/edit-byok-model-dialog'
+import { ConfirmDeleteCopilotBYOKProviderDialog } from './copilot/confirm-delete-byok-provider-dialog'
+import type { IBYOKProvider } from '../lib/copilot/byok'
 import { OpenWithExternalEditor } from './open-with-external-editor/open-with-external-editor'
 import { RepositorySettings } from './repository-settings'
 import { AppError } from './app-error'
@@ -191,8 +195,9 @@ import { NotificationsDebugStore } from '../lib/stores/notifications-debug-store
 import { PullRequestComment } from './notifications/pull-request-comment'
 import { UnknownAuthors } from './unknown-authors/unknown-authors-dialog'
 import { UnsupportedOSBannerDismissedAtKey } from './banners/os-version-no-longer-supported-banner'
+import { NameChangeSuggestionBannerShownKey } from './banners/name-change-suggestion-banner'
 import { offsetFromNow } from '../lib/offset-from'
-import { getNumber } from '../lib/local-storage'
+import { getBoolean, getNumber, setBoolean } from '../lib/local-storage'
 import { IconPreviewDialog } from './octicons/icon-preview-dialog'
 import { isCertificateErrorSuppressedFor } from '../lib/suppress-certificate-error'
 import { webUtils } from 'electron'
@@ -219,6 +224,7 @@ import { RenameWorktreeDialog } from './worktrees/rename-worktree-dialog'
 import { DeleteWorktreeDialog } from './worktrees/delete-worktree-dialog'
 import { CantDeleteWorktreeUncommittedChanges } from './worktrees/cant-delete-worktree-uncommitted-changes-dialog'
 import { getEditorOverrideLabel } from '../models/editor-override'
+import { CantDeleteMainBranch } from './delete-branch/cant-delete-main-branch'
 
 const MinuteInMilliseconds = 1000 * 60
 const HourInMilliseconds = MinuteInMilliseconds * 60
@@ -437,6 +443,20 @@ export class App extends React.Component<IAppProps, IAppState> {
     }
 
     this.checkIfThankYouIsInOrder()
+    this.checkIfNameChangeSuggestionIsInOrder()
+  }
+
+  private checkIfNameChangeSuggestionIsInOrder() {
+    const HasLaunchedBeforeKey = 'has-launched-before'
+    const hasLaunchedBefore = getBoolean(HasLaunchedBeforeKey, false)
+    if (!hasLaunchedBefore) {
+      setBoolean(HasLaunchedBeforeKey, true)
+      return
+    }
+    if (!getBoolean(NameChangeSuggestionBannerShownKey, false)) {
+      setBoolean(NameChangeSuggestionBannerShownKey, true)
+      this.setBanner({ type: BannerType.NameChangeSuggestion })
+    }
   }
 
   private onMenuEvent(name: MenuEvent): any {
@@ -1507,7 +1527,7 @@ export class App extends React.Component<IAppProps, IAppState> {
 
     // We do not render the app menu bar on Linux when the user has selected
     // the "native" menu option
-    if (__LINUX__ && this.state.titleBarStyle === 'native') {
+    if (__LINUX__ && this.state.titleBarStyle !== 'custom') {
       return null
     }
 
@@ -1616,6 +1636,14 @@ export class App extends React.Component<IAppProps, IAppState> {
             key="cant-delete-current-branch"
             branchToDelete={popup.branchToDelete}
             blockedByBranch={popup.blockedByBranch}
+            onDismissed={onPopupDismissedFn}
+          />
+        )
+      case PopupType.CantDeleteMainBranch:
+        return (
+          <CantDeleteMainBranch
+            key="cant-delete-main-branch"
+            branchToDelete={popup.branchToDelete}
             onDismissed={onPopupDismissedFn}
           />
         )
@@ -1748,9 +1776,12 @@ export class App extends React.Component<IAppProps, IAppState> {
             showDiffCheckMarks={this.state.showDiffCheckMarks}
             showBranchNameInRepoList={this.state.showBranchNameInRepoList}
             branchSortOrder={this.state.branchSortOrder}
-            commitDateDisplay={this.state.commitDateDisplay}
             graphMaxLanes={this.state.graphMaxLanes}
             copyPathNormalization={this.state.copyPathNormalization}
+            selectedCopilotModels={this.state.selectedCopilotModels}
+            copilotModels={this.state.copilotModels}
+            copilotAvailable={this.state.copilotAvailable}
+            byokProviders={this.state.byokProviders}
           />
         )
       case PopupType.RepositorySettings: {
@@ -1864,6 +1895,35 @@ export class App extends React.Component<IAppProps, IAppState> {
             onDismissed={onPopupDismissedFn}
             onOpenShell={this.onOpenShellIgnoreWarning}
             path={popup.path}
+          />
+        )
+      case PopupType.EditCopilotBYOKProvider:
+        return (
+          <EditCopilotBYOKProviderDialog
+            key="edit-copilot-byok-provider"
+            dispatcher={this.props.dispatcher}
+            provider={popup.provider}
+            onSave={this.onSaveCopilotBYOKProvider}
+            onDismissed={onPopupDismissedFn}
+          />
+        )
+      case PopupType.EditCopilotBYOKModel:
+        return (
+          <EditCopilotBYOKModelDialog
+            key="edit-copilot-byok-model"
+            model={popup.model}
+            otherModelIds={popup.otherModelIds}
+            onSave={popup.onSave}
+            onDismissed={onPopupDismissedFn}
+          />
+        )
+      case PopupType.ConfirmDeleteCopilotBYOKProvider:
+        return (
+          <ConfirmDeleteCopilotBYOKProviderDialog
+            key="confirm-delete-copilot-byok-provider"
+            provider={popup.provider}
+            onConfirm={this.onConfirmDeleteCopilotBYOKProvider}
+            onDismissed={onPopupDismissedFn}
           />
         )
       case PopupType.About:
@@ -2563,6 +2623,7 @@ export class App extends React.Component<IAppProps, IAppState> {
             emoji={emoji}
             onDismissed={onPopupDismissedFn}
             accounts={this.state.accounts}
+            preferAbsoluteDates={this.state.preferAbsoluteDates}
           />
         )
       }
@@ -2613,6 +2674,7 @@ export class App extends React.Component<IAppProps, IAppState> {
             prRecentBaseBranches={prRecentBaseBranches}
             repository={repository}
             externalEditorLabel={externalEditorLabel}
+            showDiffMinimap={this.state.showDiffMinimap}
             showSideBySideDiff={showSideBySideDiff}
             currentBranchHasPullRequest={currentBranchHasPullRequest}
             branchSortOrder={this.state.branchSortOrder}
@@ -3017,6 +3079,21 @@ export class App extends React.Component<IAppProps, IAppState> {
 
   private onOpenShellIgnoreWarning = (path: string) => {
     this.props.dispatcher.openShell(path, true)
+  }
+
+  private onSaveCopilotBYOKProvider = (
+    provider: IBYOKProvider,
+    secret: string | null | undefined
+  ) => {
+    if (this.state.byokProviders.some(p => p.id === provider.id)) {
+      this.props.dispatcher.updateCopilotBYOKProvider(provider, secret)
+    } else {
+      this.props.dispatcher.addCopilotBYOKProvider(provider, secret ?? null)
+    }
+  }
+
+  private onConfirmDeleteCopilotBYOKProvider = (provider: IBYOKProvider) => {
+    this.props.dispatcher.deleteCopilotBYOKProvider(provider.id)
   }
 
   private showAcknowledgements = () => {
@@ -3815,14 +3892,15 @@ export class App extends React.Component<IAppProps, IAppState> {
           issuesStore={this.props.issuesStore}
           gitHubUserStore={this.props.gitHubUserStore}
           branchSortOrder={state.branchSortOrder}
-          commitDateDisplay={state.commitDateDisplay}
           graphMaxLanes={state.graphMaxLanes}
           onViewCommitOnGitHub={this.onViewCommitOnGitHub}
           imageDiffType={state.imageDiffType}
           hideWhitespaceInChangesDiff={state.hideWhitespaceInChangesDiff}
           hideWhitespaceInHistoryDiff={state.hideWhitespaceInHistoryDiff}
           showDiffCheckMarks={state.showDiffCheckMarks}
+          preferAbsoluteDates={state.preferAbsoluteDates}
           showSideBySideDiff={state.showSideBySideDiff}
+          showDiffMinimap={state.showDiffMinimap}
           focusCommitMessage={state.focusCommitMessage}
           askForConfirmationOnDiscardChanges={
             state.askForConfirmationOnDiscardChanges
