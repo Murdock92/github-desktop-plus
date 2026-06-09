@@ -15,6 +15,10 @@ import {
   addPinnedRepository,
   removePinnedRepository,
 } from '../../lib/stores/repository-pinning'
+import {
+  getAllRepoAccentColors,
+  setRepoAccentColor,
+} from '../../lib/stores/repo-accent-colors'
 import { IFilterListGroup } from '../lib/filter-list'
 import { IMatches } from '../../lib/fuzzy-find'
 import { ILocalRepositoryState, Repository } from '../../models/repository'
@@ -102,6 +106,7 @@ interface IRepositoriesListState {
   readonly pullingRepositories: boolean
   readonly selectedItem: IRepositoryListItem | null
   readonly pinnedRepositoriesIds: ReadonlyArray<number>
+  readonly repoAccentColors: ReadonlyMap<number, string>
 }
 
 const RowHeight = 29
@@ -181,6 +186,7 @@ export class RepositoriesList extends React.Component<
       pullingRepositories: false,
       selectedItem: null,
       pinnedRepositoriesIds: getPinnedRepositories(),
+      repoAccentColors: getAllRepoAccentColors(),
     }
   }
 
@@ -203,6 +209,10 @@ export class RepositoriesList extends React.Component<
 
   private renderItem = (item: IRepositoryListItem, matches: IMatches) => {
     const repository = item.repository
+    const accentColor =
+      repository instanceof Repository
+        ? (this.state.repoAccentColors.get(repository.id) ?? null)
+        : null
     return (
       <RepositoryListItem
         key={item.id}
@@ -216,6 +226,7 @@ export class RepositoriesList extends React.Component<
         isNestedWorktree={item.isNestedWorktree}
         mainWorktreeName={item.mainWorktreeName}
         isPrunableWorktree={item.isPrunableWorktree}
+        accentColor={accentColor}
       />
     )
   }
@@ -528,6 +539,14 @@ export class RepositoriesList extends React.Component<
         item.repository instanceof Repository && !item.isVirtualLinkedWorktree
           ? this.onUnpinRepository
           : undefined,
+      accentColor:
+        item.repository instanceof Repository
+          ? (this.state.repoAccentColors.get(item.repository.id) ?? null)
+          : null,
+      onSetAccentColor:
+        item.repository instanceof Repository && !item.isVirtualLinkedWorktree
+          ? this.onSetAccentColor
+          : undefined,
     })
 
     showContextualMenu(items)
@@ -790,5 +809,13 @@ export class RepositoriesList extends React.Component<
       removePinnedRepository(r)
     }
     this.setState({ pinnedRepositoriesIds: getPinnedRepositories() })
+  }
+
+  private onSetAccentColor = (
+    repository: Repository,
+    color: string | null
+  ) => {
+    setRepoAccentColor(repository.id, color)
+    this.setState({ repoAccentColors: getAllRepoAccentColors() })
   }
 }

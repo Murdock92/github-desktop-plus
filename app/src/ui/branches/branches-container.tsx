@@ -124,6 +124,44 @@ export class BranchesContainer extends React.Component<
     this.clearPullRequestQuickViewTimer()
   }
 
+  private renderRecentBranchChips() {
+    const { recentBranches, currentBranch, selectedTab, repository } = this.props
+
+    let tab = selectedTab
+    if (!repository.gitHubRepository) {
+      tab = BranchesTab.Branches
+    }
+
+    if (tab !== BranchesTab.Branches) {
+      return null
+    }
+
+    const chips = currentBranch
+      ? recentBranches.filter(b => b.name !== currentBranch.name).slice(0, 5)
+      : recentBranches.slice(0, 5)
+
+    if (chips.length === 0) {
+      return null
+    }
+
+    return (
+      <div className="recent-branch-chips" aria-label="Recently used branches">
+        {chips.map(branch => (
+          <button
+            key={branch.name}
+            className="recent-branch-chip"
+            onClick={() => this.onBranchItemClick(branch)}
+            title={branch.name}
+            aria-label={`Switch to branch ${branch.name}`}
+          >
+            <Octicon symbol={octicons.gitBranch} />
+            <span>{branch.name}</span>
+          </button>
+        ))}
+      </div>
+    )
+  }
+
   public render() {
     const classes = classNames('branches-container', {
       resizable: enableResizingToolbarButtons(),
@@ -131,6 +169,7 @@ export class BranchesContainer extends React.Component<
     return (
       <div className={classes}>
         {this.renderTabBar()}
+        {this.renderRecentBranchChips()}
         {this.renderSelectedTab()}
         {this.renderMergeButtonRow()}
         {this.renderPullRequestQuickView()}

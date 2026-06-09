@@ -49,6 +49,49 @@
   }
 }
 
+.recent-branch-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-half);
+  padding: var(--spacing-half) var(--spacing);
+  border-bottom: var(--base-border);
+
+  .recent-branch-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: var(--font-size-sm);
+    background: var(--box-alt-background-color);
+    border: var(--base-border);
+    color: var(--text-color);
+    cursor: pointer;
+    max-width: 160px;
+    white-space: nowrap;
+    overflow: hidden;
+
+    .octicon {
+      flex-shrink: 0;
+      opacity: 0.6;
+    }
+
+    span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    &:hover {
+      background: var(--list-item-hover-background-color);
+      border-color: var(--tab-bar-active-color);
+    }
+
+    &:active {
+      opacity: 0.8;
+    }
+  }
+}
+
 .branches-container-panel {
   display: flex;
   flex: 1;

@@ -525,7 +525,7 @@ export class CopilotStore extends BaseStore {
         },
         availableTools: [],
         onPermissionRequest: async () => ({
-          kind: 'reject',
+          kind: 'no-result',
         }),
       })
 
@@ -696,7 +696,7 @@ export class CopilotStore extends BaseStore {
             content: ConflictResolutionSystemPrompt,
           },
           onPermissionRequest: async () => ({
-            kind: 'reject',
+            kind: 'no-result',
           }),
         })
 

@@ -1,0 +1,117 @@
+.commit-message-history-toggle-btn {
+  flex-shrink: 0;
+  padding: 0 var(--spacing-half);
+  color: var(--text-secondary-color);
+
+  &:hover {
+    color: var(--text-color);
+  }
+
+  .octicon {
+    vertical-align: middle;
+  }
+}
+
+.commit-message-history-popover {
+  display: flex;
+  flex-direction: column;
+  min-width: 320px;
+  max-width: 480px;
+  overflow: hidden;
+  background: var(--box-background-color);
+
+  .commit-message-history-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--spacing-half) var(--spacing);
+    border-bottom: 1px solid var(--box-border-color);
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary-color);
+    flex-shrink: 0;
+
+    .commit-message-history-close {
+      padding: 0 var(--spacing-half);
+      color: var(--text-secondary-color);
+
+      &:hover {
+        color: var(--text-color);
+      }
+    }
+  }
+
+  .commit-message-history-list {
+    overflow-y: auto;
+    max-height: 260px;
+  }
+}
+
+.commit-message-history-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-half);
+  padding: var(--spacing-half) var(--spacing);
+  cursor: pointer;
+  border-bottom: 1px solid var(--box-border-color);
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  &:hover,
+  &:focus {
+    background-color: var(--list-item-hover-background-color);
+    outline: none;
+  }
+
+  .commit-message-history-item-content {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .commit-message-history-summary {
+    font-size: var(--font-size-sm);
+    color: var(--text-color);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .commit-message-history-body {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary-color);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .commit-message-history-copy-btn {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px var(--spacing-half);
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary-color);
+    border: 1px solid var(--box-border-color);
+    border-radius: var(--button-border-radius);
+    background: var(--box-background-color);
+    white-space: nowrap;
+
+    &:hover {
+      color: var(--text-color);
+      border-color: var(--secondary-button-border-color-active);
+    }
+
+    .octicon {
+      flex-shrink: 0;
+    }
+
+    .commit-message-history-issue-label {
+      font-weight: var(--font-weight-semibold);
+    }
+  }
+}

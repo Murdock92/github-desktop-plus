@@ -34,6 +34,9 @@ interface IRepositoryListItemProps {
   readonly isNestedWorktree: boolean
   readonly mainWorktreeName: string | null
   readonly isPrunableWorktree: boolean
+
+  /** Optional accent color shown as a left-border highlight on the list item */
+  readonly accentColor?: string | null
 }
 
 /** A repository item. */
@@ -67,11 +70,17 @@ export class RepositoryListItem extends React.Component<
         this.props.title === alias,
     })
 
+    const accentStyle: React.CSSProperties | undefined = this.props.accentColor
+      ? { borderLeft: `3px solid ${this.props.accentColor}`, paddingLeft: 5 }
+      : undefined
+
     return (
       <div
         className={classNames('repository-list-item', {
           'nested-worktree': this.props.isNestedWorktree,
+          'has-accent': !!this.props.accentColor,
         })}
+        style={accentStyle}
         ref={this.listItemRef}
       >
         <Tooltip
@@ -146,7 +155,8 @@ export class RepositoryListItem extends React.Component<
         nextProps.changedFilesCount !== this.props.changedFilesCount ||
         nextProps.isNestedWorktree !== this.props.isNestedWorktree ||
         nextProps.mainWorktreeName !== this.props.mainWorktreeName ||
-        nextProps.isPrunableWorktree !== this.props.isPrunableWorktree
+        nextProps.isPrunableWorktree !== this.props.isPrunableWorktree ||
+        nextProps.accentColor !== this.props.accentColor
       )
     } else {
       return true

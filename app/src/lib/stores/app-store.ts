@@ -2939,7 +2939,6 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
     this.graphMaxLanes = getNumber(graphMaxLanesKey) ?? defaultGraphMaxLanes
 
-
     this.commitMessageGenerationDisclaimerLastSeen =
       getNumber(commitMessageGenerationDisclaimerLastSeenKey) ?? null
 

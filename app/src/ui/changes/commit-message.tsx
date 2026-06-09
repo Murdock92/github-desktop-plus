@@ -78,6 +78,13 @@ import { TooltippedContent } from '../lib/tooltipped-content'
 import { showItemInFolder } from '../main-process-proxy'
 import { HookProgress } from '../../lib/git'
 import { assertNever } from '../../lib/fatal-error'
+import { CommitMessageHistory } from './commit-message-history'
+import {
+  IRecentCommitMessage,
+  loadRecentCommitMessages,
+  saveRecentCommitMessage,
+  extractIssueNumber,
+} from '../../lib/recent-commit-messages'
 
 function renderScopeValue(origin: IConfigValueOrigin): JSX.Element {
   if (isConditionalInclude(origin)) {
@@ -331,6 +338,10 @@ interface ICommitMessageState {
 
   readonly isRuleFailurePopoverOpen: boolean
 
+  readonly isShowingHistoryPopover: boolean
+
+  readonly recentMessages: ReadonlyArray<IRecentCommitMessage>
+
   readonly repoRuleCommitMessageFailures: RepoRulesMetadataFailures
   readonly repoRuleCommitAuthorFailures: RepoRulesMetadataFailures
   readonly repoRuleBranchNameFailures: RepoRulesMetadataFailures
@@ -365,6 +376,10 @@ export class CommitMessage extends React.Component<
   private wrapperRef = React.createRef<HTMLDivElement>()
   private summaryGroupRef = React.createRef<HTMLDivElement>()
   private summaryTextInput: HTMLInputElement | null = null
+  private historyToggleBtnEl: HTMLButtonElement | null = null
+  private onHistoryToggleBtnRef = (el: HTMLButtonElement | null) => {
+    this.historyToggleBtnEl = el
+  }
 
   private descriptionTextArea: HTMLTextAreaElement | null = null
   private descriptionTextAreaScrollDebounceId: number | null = null
@@ -388,6 +403,8 @@ export class CommitMessage extends React.Component<
       isCommittingStatusMessage: '',
       repoRulesEnabled: false,
       isRuleFailurePopoverOpen: false,
+      isShowingHistoryPopover: false,
+      recentMessages: loadRecentCommitMessages(),
       repoRuleCommitMessageFailures: new RepoRulesMetadataFailures(),
       repoRuleCommitAuthorFailures: new RepoRulesMetadataFailures(),
       repoRuleBranchNameFailures: new RepoRulesMetadataFailures(),
@@ -715,6 +732,12 @@ export class CommitMessage extends React.Component<
 
     if (commitCreated) {
       this.props.onSuccessfulCommitCreated?.()
+      const { summary, description } = commitContext
+      saveRecentCommitMessage(summary, description ?? null)
+      this.setState(s => ({
+        recentMessages: loadRecentCommitMessages(),
+        isShowingHistoryPopover: s.isShowingHistoryPopover,
+      }))
       this.clearCommitMessage()
     }
   }
@@ -1560,6 +1583,75 @@ export class CommitMessage extends React.Component<
     }
   }
 
+  private onToggleHistoryPopover = () => {
+    this.setState(s => ({
+      isShowingHistoryPopover: !s.isShowingHistoryPopover,
+    }))
+  }
+
+  private onDismissHistoryPopover = () => {
+    this.setState({ isShowingHistoryPopover: false })
+  }
+
+  private onSelectHistoryMessage = (
+    summary: string,
+    description: string | null
+  ) => {
+    this.setState(s => ({
+      commitMessage: {
+        ...s.commitMessage,
+        summary,
+        description: description ?? s.commitMessage.description,
+      },
+    }))
+  }
+
+  private renderHistoryPopover(): JSX.Element | null {
+    const { recentMessages } = this.state
+    if (!this.state.isShowingHistoryPopover || recentMessages.length === 0) {
+      return null
+    }
+
+    return (
+      <CommitMessageHistory
+        anchor={this.historyToggleBtnEl}
+        recentMessages={recentMessages}
+        onSelectMessage={this.onSelectHistoryMessage}
+        onDismiss={this.onDismissHistoryPopover}
+      />
+    )
+  }
+
+  private renderHistoryToggleButton(): JSX.Element | null {
+    const { recentMessages } = this.state
+    if (recentMessages.length === 0) {
+      return null
+    }
+
+    const issueNumbers = recentMessages
+      .map(m => extractIssueNumber(m.summary))
+      .filter((n): n is string => n !== null)
+    const uniqueIssues = [...new Set(issueNumbers)]
+    const tooltip =
+      uniqueIssues.length > 0
+        ? `Recent messages (${uniqueIssues.slice(0, 3).join(', ')}${
+            uniqueIssues.length > 3 ? '…' : ''
+          })`
+        : 'Recent commit messages'
+
+    return (
+      <Button
+        className="commit-message-history-toggle-btn"
+        onClick={this.onToggleHistoryPopover}
+        tooltip={tooltip}
+        ariaLabel="Show recent commit messages"
+        onButtonRef={this.onHistoryToggleBtnRef}
+      >
+        <Octicon symbol={octicons.history} />
+      </Button>
+    )
+  }
+
   private renderRuleFailurePopover() {
     const { branch, repository } = this.props
 
@@ -1921,12 +2013,14 @@ export class CommitMessage extends React.Component<
             }
             spellcheck={commitSpellcheckEnabled}
           />
+          {this.renderHistoryToggleButton()}
           {showRepoRuleCommitMessageFailureHint &&
             this.renderRepoRuleCommitMessageFailureHint()}
           {showSummaryLengthHint && this.renderSummaryLengthHint()}
         </div>
 
         {this.state.isRuleFailurePopoverOpen && this.renderRuleFailurePopover()}
+        {this.renderHistoryPopover()}
 
         {this.props.showInputLabels === true && (
           <label htmlFor="commit-message-description">Description</label>

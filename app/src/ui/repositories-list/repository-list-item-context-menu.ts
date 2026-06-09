@@ -12,6 +12,7 @@ import {
   DefaultEditorLabel,
   DefaultShellLabel,
 } from '../lib/context-menu'
+import { AccentColorPresets } from '../../lib/stores/repo-accent-colors'
 
 interface IRepositoryListItemContextMenuConfig {
   repository: Repositoryish
@@ -40,6 +41,8 @@ interface IRepositoryListItemContextMenuConfig {
   isPinned?: boolean
   onPinRepository?: (repository: Repository) => void
   onUnpinRepository?: (repository: Repository) => void
+  accentColor?: string | null
+  onSetAccentColor?: (repository: Repository, color: string | null) => void
 }
 
 export const generateRepositoryListContextMenu = (
@@ -53,6 +56,7 @@ export const generateRepositoryListContextMenu = (
     ...buildAliasMenuItems(config),
     ...buildGroupNameMenuItems(config),
     ...buildPinMenuItems(config),
+    ...buildAccentColorMenuItems(config),
   ]
   const missing = repository instanceof Repository && repository.missing
   const isGitHub =
@@ -279,4 +283,41 @@ const buildPinMenuItems = (
   }
 
   return []
+}
+
+const buildAccentColorMenuItems = (
+  config: IRepositoryListItemContextMenuConfig
+): ReadonlyArray<IMenuItem> => {
+  const { repository } = config
+
+  if (
+    !(repository instanceof Repository) ||
+    config.isLinkedWorktreeRow ||
+    config.isVirtualLinkedWorktreeRow ||
+    config.onSetAccentColor === undefined
+  ) {
+    return []
+  }
+
+  const colorItems: IMenuItem[] = AccentColorPresets.map(preset => ({
+    label: `${config.accentColor === preset.value ? '✓ ' : ''}${preset.label}`,
+    action: () => config.onSetAccentColor!(repository, preset.value),
+  }))
+
+  if (config.accentColor !== null && config.accentColor !== undefined) {
+    colorItems.push(
+      { type: 'separator' },
+      {
+        label: __DARWIN__ ? 'Remove Accent Color' : 'Remove accent color',
+        action: () => config.onSetAccentColor!(repository, null),
+      }
+    )
+  }
+
+  return [
+    {
+      label: __DARWIN__ ? 'Set Accent Color' : 'Set accent color',
+      submenu: colorItems,
+    },
+  ]
 }

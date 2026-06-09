@@ -303,6 +303,7 @@ export class Preferences extends React.Component<
       selectedTimeFormat: getTimeFormatPreference(),
       selectedNumberFormat: getNumberFormatPreference(),
       preferAbsoluteDates: getPreferAbsoluteDates(),
+      hideWindowOnQuit: this.props.hideWindowOnQuit,
     }
   }
 

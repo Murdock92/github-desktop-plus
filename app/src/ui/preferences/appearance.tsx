@@ -471,7 +471,6 @@ export class Appearance extends React.Component<
     }
   }
 
-
   private renderRepositoryList() {
     return (
       <div className="advanced-section">
