@@ -28,7 +28,22 @@
   }
 }
 
+.repo-accent-overlay {
+  position: fixed;
+  inset: 0;
+  opacity: 0.04;
+  pointer-events: none;
+  z-index: -1;
+  transition:
+    background 0.4s ease,
+    opacity 0.4s ease;
+}
+
 #desktop-app-contents {
+  // Create a stacking context so z-index: -1 on .repo-accent-overlay stays
+  // within the app container rather than falling behind the body background.
+  isolation: isolate;
+
   &.commit-being-dragged {
     :not(input):not(textarea),
     :not(input):not(textarea)::after,

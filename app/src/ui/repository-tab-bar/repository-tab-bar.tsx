@@ -14,6 +14,9 @@ interface IRepositoryTabBarProps {
   readonly selectedRepository: Repository | CloningRepository | null
 
   readonly dispatcher: Dispatcher
+
+  /** Accent colors keyed by repository ID */
+  readonly accentColors: ReadonlyMap<number, string>
 }
 
 /**
@@ -60,11 +63,15 @@ export class RepositoryTabBar extends React.Component<
   }
 
   private renderTab(repository: Repository | CloningRepository) {
-    const { selectedRepository } = this.props
+    const { selectedRepository, accentColors } = this.props
     const isSelected = selectedRepository?.id === repository.id
     const displayName = this.getDisplayName(repository)
     const isMissing = repository instanceof Repository && repository.missing
     const isCloning = repository instanceof CloningRepository
+    const accentColor =
+      repository instanceof Repository
+        ? accentColors.get(repository.id)
+        : undefined
 
     let statusTitle: string | undefined
     if (isMissing) {
@@ -73,10 +80,15 @@ export class RepositoryTabBar extends React.Component<
       statusTitle = 'Cloning…'
     }
 
+    const tabStyle: React.CSSProperties | undefined = accentColor
+      ? { borderBottomColor: isSelected ? accentColor : `${accentColor}55` }
+      : undefined
+
     return (
       <button
         key={repository.id}
         className={`repository-tab${isSelected ? ' selected' : ''}${isMissing ? ' missing' : ''}${isCloning ? ' cloning' : ''}`}
+        style={tabStyle}
         onClick={() => this.onTabClick(repository)}
         onAuxClick={e => this.onAuxClick(e, repository)}
         title={statusTitle !== undefined ? statusTitle : repository.path}

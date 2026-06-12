@@ -162,6 +162,9 @@ import { buildAutocompletionProviders } from './autocompletion'
 import { DragType, DropTargetSelector } from '../models/drag-drop'
 import { dragAndDropManager } from '../lib/drag-and-drop-manager'
 import { RepositoryTabBar } from './repository-tab-bar/repository-tab-bar'
+import {
+  getAllRepoAccentColors,
+} from '../lib/stores/repo-accent-colors'
 import { MultiCommitOperation } from './multi-commit-operation/multi-commit-operation'
 import { WarnLocalChangesBeforeUndo } from './undo/warn-local-changes-before-undo'
 import { WarnUndoPushedCommit } from './undo/warn-undo-pushed-commit'
@@ -3189,11 +3192,29 @@ export class App extends React.Component<IAppProps, IAppState> {
   }
 
   private renderApp() {
+    const selectedRepo = this.state.selectedState?.repository
+    const accentColor =
+      selectedRepo instanceof Repository
+        ? getAllRepoAccentColors().get(selectedRepo.id)
+        : undefined
+
+    const style = accentColor
+      ? ({ '--repo-accent-color': accentColor } as React.CSSProperties)
+      : undefined
+
     return (
       <div
         id="desktop-app-contents"
         className={this.getDesktopAppContentsClassNames()}
+        style={style}
       >
+        {accentColor && (
+          <div
+            className="repo-accent-overlay"
+            style={{ background: accentColor }}
+            aria-hidden={true}
+          />
+        )}
         {this.renderToolbar()}
         {this.renderRepositoryTabBar()}
         {this.renderBanner()}
@@ -3220,6 +3241,7 @@ export class App extends React.Component<IAppProps, IAppState> {
         openTabs={openTabs}
         selectedRepository={selectedRepository}
         dispatcher={this.props.dispatcher}
+        accentColors={getAllRepoAccentColors()}
       />
     )
   }
